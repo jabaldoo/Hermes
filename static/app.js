@@ -7,8 +7,8 @@ const STATUSY = ["OK", "POMOC", "WYPADEK", "POZAR", "ZAGROZENIE", "PANIKA", "LUD
 const TYPY_INC = STATUSY.slice(1);
 const KOLOR = {
   OK: "#2fd98f", LUDZIE: "#ffd23f", PANIKA: "#ff6bd6", ZATOR: "#ff9f43", WYPADEK: "#8b9dff", POZAR: "#ff5a1f",
-  POMOC: "#ff3355", ZAGROZENIE: "#b56cff", ALERT: "#ff3355", INFO: "#7aa2ff", KOMUNIKAT: "#f5c451", MESH: "#45e3ff",
-  SLUZBY: "#60a5fa", EWAKUACJA: "#34d399", ZRZUT: "#e2e8f0", DECYZJA: "#a5b4fc",
+  POMOC: "#ff3355", ZAGROZENIE: "#b56cff", ALERT: "#ff3355", INFO: "#7aa2ff", KOMUNIKAT: "#8fb8e6", MESH: "#8fb8e6",
+  SLUZBY: "#60a5fa", EWAKUACJA: "#34d399", ZRZUT: "#e2e8f0", DECYZJA: "#8fb8e6",
 };
 const NAZWA = { OK: "OK", LUDZIE: "LUDZIE", PANIKA: "PANIKA", ZATOR: "ZATOR", WYPADEK: "WYPADEK", POZAR: "POŻAR",
   POMOC: "POMOC", ZAGROZENIE: "ZAGROŻENIE", ALERT: "ALERT", INFO: "INFO", KOMUNIKAT: "KOMUNIKAT", MESH: "MESH",
@@ -17,7 +17,7 @@ const KATEGORIA = { OK: "sluzby", SLUZBY: "sluzby", ZRZUT: "sluzby", DECYZJA: "s
   MESH: "mesh", ALERT: "system", INFO: "system" };
 TYPY_INC.forEach((t) => { KATEGORIA[t] = "wykrycia"; });
 const NAZWY_SLUZB = { Policja: "Policja", PSP: "Straż (PSP)", ZRM: "Pogotowie (ZRM)" };
-const KOLORY_REGIONOW = ["#45e3ff", "#f5c451", "#b18cff", "#34d399", "#ff8fab", "#7aa2ff", "#ffb86b", "#a3e635"];
+const KOLORY_REGIONOW = ["#7fa9d6", "#c9ab72", "#a293cf", "#6fb096", "#c98ea0", "#8d9fcf", "#c99c7c", "#98b57c"];
 const ANTENA_SVG = '<svg viewBox="0 0 26 30"><path d="M13 12 7 29h2.4l1.2-3.6h4.8l1.2 3.6H19zm-1.6 11.2L13 18.4l1.6 4.8z" fill="currentColor"/><circle cx="13" cy="9" r="2.6" fill="currentColor"/><path d="M7.6 3.6a7.6 7.6 0 0 0 0 10.8M18.4 3.6a7.6 7.6 0 0 1 0 10.8M4.4 1a11.6 11.6 0 0 0 0 16M21.6 1a11.6 11.6 0 0 1 0 16" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg>';
 
 const svg = (d, vb = "0 0 24 24") => `<svg viewBox="${vb}" aria-hidden="true">${d}</svg>`;
@@ -97,7 +97,7 @@ const M = { mapa: null, bazowe: {}, prg: null, ulice: null, sektory: {}, def: {}
 function inicjalizujMape() {
   const mapa = L.map("mapa", { zoomControl: false, zoomSnap: 0.25 });
   M.mapa = mapa;
-  L.control.zoom({ position: "topleft" }).addTo(mapa);
+  L.control.zoom({ position: "bottomleft" }).addTo(mapa);
   [["pRegiony", 350], ["pScen", 360], ["pStrefy", 370], ["pSektory", 380], ["pMesh", 430], ["pBudynki", 435], ["pSchrony", 445],
     ["pUlice", 455], ["pEtykiety", 460], ["pStacje", 610], ["pGrupy", 620]]
     .forEach(([n, z]) => { mapa.createPane(n).style.zIndex = z; });
@@ -183,7 +183,7 @@ function zbudujWarstwyStatyczne(w) {
     .bindTooltip("Las Osobowicki — obszar BDL (mock)", { sticky: true });
   scen.ogniska = L.layerGroup(w.ogniska.map((p) => L.circle(p, { pane: "pScen", radius: 320, color: "#ff5a36", weight: 1.5, fillColor: "#ff5a36", fillOpacity: 0.35, className: "ognisko" })));
 
-  L.marker([w.baza.lat, w.baza.lon], { zIndexOffset: 500, icon: ikonaHtml(`<div class="baza-czk"><svg viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7z" fill="#05080f" stroke="#45e3ff" stroke-width="1.6"/><path d="M12 7.5v8m-3.5-6a5 5 0 0 1 7 0m-9-2a8 8 0 0 1 11 0" stroke="#45e3ff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg><span>CZK</span></div>`) })
+  L.marker([w.baza.lat, w.baza.lon], { zIndexOffset: 500, icon: ikonaHtml(`<div class="baza-czk"><svg viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7z" fill="#0a1422" stroke="#8fb8e6" stroke-width="1.6"/><path d="M12 7.5v8m-3.5-6a5 5 0 0 1 7 0m-9-2a8 8 0 0 1 11 0" stroke="#8fb8e6" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg><span>CZK</span></div>`) })
     .bindTooltip(`<b>${esc(w.baza.nazwa)}</b><br>Węzeł główny sieci mesh`, { direction: "top" }).addTo(M.mapa);
 }
 
@@ -305,7 +305,7 @@ function aktualizujDrony(drony) {
 
 function aktualizujMesh(linki) {
   const widoczne = $("#w-mesh").checked;
-  while (M.mesh.length < linki.length) M.mesh.push(L.polyline([[0, 0], [0, 0]], { pane: "pMesh", className: "mesh-link", color: "#45e3ff", interactive: false }));
+  while (M.mesh.length < linki.length) M.mesh.push(L.polyline([[0, 0], [0, 0]], { pane: "pMesh", className: "mesh-link", color: "#8fb8e6", interactive: false }));
   M.mesh.forEach((l, i) => {
     const k = linki[i];
     if (!k || !widoczne) { if (M.mapa.hasLayer(l)) l.remove(); return; }
@@ -363,6 +363,8 @@ function obsluzStan(s) {
   $("#btn-pauza").innerHTML = s.pauza ? IKONY.START : IKONY.PAUZA;
   $$("#seg-scenariusz button").forEach((b) => b.classList.toggle("aktywny", b.dataset.scen === s.scenariusz.id));
   $$("#seg-predkosc button").forEach((b) => b.classList.toggle("aktywny", +b.dataset.x === s.predkosc));
+  const hud = $("#hud-scenariusz");
+  if (hud.textContent !== s.scenariusz.nazwa) hud.textContent = s.scenariusz.nazwa;
 
   renderujMisje(s.scenariusz);
   renderujPogode(s.pogoda);
@@ -398,14 +400,23 @@ function renderujMisje(sc) {
   tag.classList.toggle("cwiczenie", sc.rodzaj === "ćwiczenie");
   $("#misja-nazwa").textContent = sc.nazwa;
   $("#misja-opis").textContent = sc.opis;
-  $("#misja-kroki").innerHTML = sc.kroki.length
-    ? sc.kroki.map((k) => `<li class="${k.stan.replace(" ", "-")} ${k.typ}"><time>${tplus(k.t)}</time>${esc(k.opis)}</li>`).join("")
-    : `<li class="w-toku">Rój patroluje — wykrycia losowe (ważone). Wybierz scenariusz u góry, aby odtworzyć sytuację kryzysową.</li>`;
+  const kroki = sc.kroki;
+  const wykonane = kroki.filter((k) => k.stan === "wykonany").length;
+  const biezacy = kroki.find((k) => k.stan === "w toku") || [...kroki].reverse().find((k) => k.stan === "wykonany");
+  $("#misja-krok").textContent = kroki.length
+    ? (biezacy ? `${tplus(biezacy.t)} · ${biezacy.opis}` : "Oczekiwanie na pierwszy krok")
+    : "Patrol ciągły — wykrycia losowe (ważone). Wybierz scenariusz u góry.";
+  const segmenty = kroki.length || 10;
+  $("#misja-postep").innerHTML = Array.from({ length: segmenty }, (_, i) => {
+    if (!kroki.length) return "<i></i>";
+    return `<i class="${kroki[i].stan === "wykonany" ? "gotowy" : kroki[i].stan === "w toku" ? "teraz" : ""}"></i>`;
+  }).join("");
+  $("#misja-postep-opis").textContent = kroki.length ? `${wykonane} z ${kroki.length} kroków wykonanych` : "brak skryptu scenariusza";
 }
 
 function renderujPogode(p) {
   const ik = p.opad_mm_h > 0 ? IKONY.DESZCZ : p.temperatura_c >= 28 ? IKONY.SLONCE : IKONY.CHMURA;
-  const html = `${ik}<small>SCEN.</small>${p.temperatura_c.toFixed(1)}°C · ${p.wiatr_kmh} km/h${p.opad_mm_h > 0 ? ` · ${p.opad_mm_h} mm/h` : ` · RH ${p.wilgotnosc_proc}%`}`;
+  const html = `${ik}<small>SCEN.</small><b>${p.temperatura_c.toFixed(1)}°C · ${p.wiatr_kmh} km/h${p.opad_mm_h > 0 ? ` · ${p.opad_mm_h} mm/h` : ` · RH ${p.wilgotnosc_proc}%`}</b>`;
   const chip = $("#chip-pogoda");
   if (chip.innerHTML !== html) chip.innerHTML = html;
   chip.title = `Pogoda w scenariuszu (symulowana): ${p.opis}`;
@@ -428,7 +439,7 @@ function renderujStatystyki(s) {
   if (wykres) { wykres.data.datasets[0].data = STATUSY.map((k) => s.licznik[k] || 0); wykres.update(); }
   $("#kpi-zagrozone").textContent = 25 - (s.licznik.OK || 0);
   $("#legenda-statusow").innerHTML = STATUSY.map((k) =>
-    `<li class="k-${k}${s.licznik[k] ? "" : " zero"}">${IKONY[k]}<span>${NAZWA[k]}</span><b>${s.licznik[k] || 0}</b></li>`).join("");
+    `<li class="k-${k}${s.licznik[k] ? "" : " zero"}"><i></i><span>${NAZWA[k]}</span><b>${s.licznik[k] || 0}</b></li>`).join("");
   const st = s.statystyki;
   $("#kpi-czeka").textContent = st.czeka;
   $("#kpi-incydenty").textContent = st.incydenty;
@@ -485,9 +496,12 @@ function dodajDoFeedu(z, cicho) {
 function ustawPakiet(z, flash) {
   const el = $("#ostatni-pakiet");
   el.style.setProperty("--k", KOLOR[z.status]);
-  el.innerHTML = `<span class="st">${NAZWA[z.status]}</span><span>${esc(z.sektor)}</span>`
-    + (z.liczba_osob ? `<span>${z.liczba_osob} os. na zdjęciu</span>` : "")
-    + `<span>pewność ${Math.round(z.pewnosc * 100)}%</span><span>${(z.ts || "").slice(11, 19)}</span><span class="zero">zdjęcie: twarze zamazane</span>`;
+  el.innerHTML = `<span class="st">${NAZWA[z.status]}</span><span>${esc(z.sektor)}</span>`;
+  $("#pk-czas").textContent = (z.ts || "").slice(11, 19) || "--:--:--";
+  $("#pk-pewnosc").textContent = `pewność ${Math.round(z.pewnosc * 100)}%`;
+  $("#pk-osoby").textContent = z.liczba_osob ? `${z.liczba_osob} os.` : "brak";
+  const dron = ui.stan?.drony.find((d) => d.id === z.dron_id);
+  $("#pk-dron").textContent = dron ? dron.nazwa : (z.dron_id || "—");
   if (flash) { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
 }
 
@@ -518,7 +532,10 @@ function resetujWidok() {
   ui.sygSektorow = ui.sygKrokow = ui.sygStat = "";
   ui.incPodswietlony = null;
   $("#feed").innerHTML = "";
-  $("#ostatni-pakiet").textContent = "oczekiwanie na metadane z roju…";
+  $("#ostatni-pakiet").innerHTML = '<span class="st">—</span><span>—</span>';
+  ["#pk-osoby", "#pk-dron"].forEach((s) => { $(s).textContent = "—"; });
+  $("#pk-czas").textContent = "--:--:--";
+  $("#pk-pewnosc").textContent = "pewność —";
   M.podswietlenie.clearLayers();
   ui.incDane = [];
   ui.sygCzeka = "";
@@ -559,9 +576,12 @@ function sygnal() {
 
 function ustawPolaczenie(tryb) {
   const chip = $("#chip-link");
-  chip.className = `chip chip-link ${tryb}`;
+  chip.className = `stat stat-link ${tryb}`;
   chip.querySelector("span").textContent = { ws: "LIVE · WebSocket", http: "LIVE · HTTP", off: "OFFLINE — ponawiam" }[tryb];
   chip.title = { ws: "Połączenie na żywo z backendem (WebSocket)", http: "WebSocket niedostępny — odświeżanie przez HTTP co 1 s", off: "Brak połączenia z backendem HERMES" }[tryb];
+  const lacze = $("#petla-status");
+  lacze.className = `pakiet-lacze ${tryb}`;
+  lacze.querySelector("span").textContent = { ws: "Gotowy — łącze na żywo", http: "Łącze zastępcze (HTTP)", off: "Brak łącza z CZK" }[tryb];
 }
 
 function obsluzWiadomosc(w) {
@@ -820,7 +840,6 @@ function podswietlDrona(id) {
 
 // ---------------------------------------------------------------- analiza
 
-let wykresAnalizy;
 async function odswiezAnalize() {
   let a;
   try { a = await pobierz("/api/analiza"); } catch { return; }
@@ -830,27 +849,14 @@ async function odswiezAnalize() {
   $("#an-dotarcie").textContent = proc(r.dotarcie_proc);
   $("#an-czas").textContent = r.sr_czas_s === null ? "—" : mmss(r.sr_czas_s);
   const re = a.wg_rodzaju.realne, cw = a.wg_rodzaju["ćwiczenie"];
-  const dane = [[re.podazanie_proc, re.dotarcie_proc, re.reakcja_proc], [cw.podazanie_proc, cw.dotarcie_proc, cw.reakcja_proc]];
-  if (typeof Chart !== "undefined") {
-    if (!wykresAnalizy) {
-      wykresAnalizy = new Chart($("#wykres-analiza"), {
-        type: "bar",
-        data: { labels: ["Podążyło za dronem", "Dotarło do schronu", "Reakcja na komunikat"],
-          datasets: [{ label: "Realne", data: [], backgroundColor: "#ff3355", borderRadius: 4 }, { label: "Ćwiczenia", data: [], backgroundColor: "#45e3ff", borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 400 }, plugins: { legend: { display: false },
-          tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.raw === null ? "brak danych" : `${c.raw}%`}` } } },
-          scales: { y: { min: 0, max: 100, ticks: { color: "#8a98b2", callback: (v) => `${v}%` }, grid: { color: "rgba(140,170,220,0.1)" } },
-            x: { ticks: { color: "#8a98b2", font: { size: 10 } }, grid: { display: false } } } },
-      });
-    }
-    wykresAnalizy.data.datasets[0].data = dane[0];
-    wykresAnalizy.data.datasets[1].data = dane[1];
-    wykresAnalizy.update();
-  }
   const t = a.wg_typu;
-  $("#tabela-typow tbody").innerHTML = [["LUDZIE", "Grupy spokojne"], ["PANIKA", "Osoby w panice"]].map(([k, n]) =>
-    `<tr><td>${n}</td><td class="liczba">${proc(t[`realne|${k}`])}</td><td class="liczba">${proc(t[`ćwiczenie|${k}`])}</td></tr>`).join("")
-    + `<tr><td>Reakcja na komunikat głosowy</td><td class="liczba">${proc(re.reakcja_proc)}</td><td class="liczba">${proc(cw.reakcja_proc)}</td></tr>`;
+  const wiersz = (nazwa, r1, r2) => `<tr><td>${nazwa}</td><td class="liczba">${proc(r1)}</td><td class="liczba">${proc(r2)}</td></tr>`;
+  $("#tabela-typow tbody").innerHTML =
+    wiersz("Podążyło za dronem (wszyscy)", re.podazanie_proc, cw.podazanie_proc)
+    + wiersz("— grupy spokojne", t["realne|LUDZIE"], t["ćwiczenie|LUDZIE"])
+    + wiersz("— osoby w panice", t["realne|PANIKA"], t["ćwiczenie|PANIKA"])
+    + wiersz("Dotarło do schronu", re.dotarcie_proc, cw.dotarcie_proc)
+    + wiersz("Reakcja na komunikat głosowy", re.reakcja_proc, cw.reakcja_proc);
   $("#tabela-ewak tbody").innerHTML = a.ostatnie.length ? a.ostatnie.map((w) => {
     const rodzaj = w.rodzaj === "ćwiczenie" ? '<span class="badge cwiczenie">ĆWICZ.</span>' : '<span class="badge realne">REALNE</span>';
     const wynik = w.typ === "KOMUNIKAT"
@@ -889,17 +895,50 @@ async function zaladujZrodla() {
   }).join("");
 }
 
+const KIERUNKI = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+function zbudujKompas() {
+  const ns = "http://www.w3.org/2000/svg";
+  const g = $("#kompas-podzialka");
+  for (let st = 0; st < 360; st += 10) {
+    const duza = st % 30 === 0;
+    const r1 = duza ? 45 : 48, r2 = 53;
+    const a = ((st - 90) * Math.PI) / 180;
+    const linia = document.createElementNS(ns, "line");
+    linia.setAttribute("x1", 60 + r1 * Math.cos(a)); linia.setAttribute("y1", 60 + r1 * Math.sin(a));
+    linia.setAttribute("x2", 60 + r2 * Math.cos(a)); linia.setAttribute("y2", 60 + r2 * Math.sin(a));
+    if (duza) linia.setAttribute("class", "duza");
+    g.appendChild(linia);
+  }
+  [["N", 0], ["E", 90], ["S", 180], ["W", 270]].forEach(([t, st]) => {
+    const a = ((st - 90) * Math.PI) / 180;
+    const el = document.createElementNS(ns, "text");
+    el.setAttribute("x", 60 + 37 * Math.cos(a)); el.setAttribute("y", 60 + 37 * Math.sin(a));
+    el.textContent = t;
+    g.appendChild(el);
+  });
+}
+
+function ustawKompas(stopnie, kmh) {
+  if (stopnie === null || stopnie === undefined) return;
+  $("#kompas-st").textContent = Math.round(stopnie);
+  $("#kompas-kier").textContent = KIERUNKI[Math.round(stopnie / 22.5) % 16];
+  $("#kompas-kmh").textContent = `${kmh} km/h`;
+  $("#kompas-strzalka").style.transform = `rotate(${stopnie}deg)`;
+}
+
 async function zaladujImgw() {
   const chip = $("#chip-imgw");
   try {
     const { imgw } = await pobierz("/api/pogoda");
     if (!imgw) throw new Error();
     chip.classList.remove("wyszarzony");
-    chip.innerHTML = `<small>IMGW</small>${esc(imgw.stacja)} ${imgw.temperatura_c.toFixed(1)}°C · ${imgw.wiatr_kmh} km/h`;
+    chip.innerHTML = `<small>IMGW</small><b>${esc(imgw.stacja)} ${imgw.temperatura_c.toFixed(1)}°C · ${imgw.wiatr_kmh} km/h</b>`;
+    ustawKompas(imgw.kierunek_wiatru_st, imgw.wiatr_kmh);
     chip.title = `Pogoda bieżąca IMGW-PIB (${imgw.pomiar}): wilgotność ${imgw.wilgotnosc_proc}%, ciśnienie ${imgw.cisnienie_hpa} hPa, opad ${imgw.opad_mm} mm`;
   } catch {
     chip.classList.add("wyszarzony");
-    chip.innerHTML = "<small>IMGW</small>offline";
+    chip.innerHTML = "<small>IMGW</small><b>offline</b>";
     chip.title = "API IMGW niedostępne — demo działa na pogodzie scenariusza";
   }
 }
@@ -925,6 +964,10 @@ function podlaczSterowanie() {
   $$("#filtry button").forEach((b) => b.addEventListener("click", () => {
     $$("#filtry button").forEach((x) => x.classList.toggle("aktywny", x === b));
     $("#feed").dataset.filtr = b.dataset.f;
+  }));
+  $$("#seg-warstwy button").forEach((b) => b.addEventListener("click", () => {
+    $$("#seg-warstwy button").forEach((x) => x.classList.toggle("aktywny", x === b));
+    $$(".warstwy-lista").forEach((l) => { l.hidden = l.dataset.grupa !== b.dataset.grupa; });
   }));
 
   const obsluzKlikZgloszenia = async (e) => {
@@ -1030,6 +1073,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   ustawPolaczenie("off");
   inicjalizujMape();
   inicjalizujWykres();
+  zbudujKompas();
   podlaczSterowanie();
   for (;;) {
     try {
