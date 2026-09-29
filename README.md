@@ -34,15 +34,15 @@ Nie będę robił w konia Hermes to...
 
 To launch the Hermes application, run:
 
-```bash
-python main.py
+```
+start.bat from the Hermes folder
 ```
 
 The server will typically be available at `http://127.0.0.1:8000`.
 
 ## Project Structure
 
-- `main.py`: Entry point of the application.
+- `start.bat`: Entry point of the application.
 - `db.py`: Database management and connectivity.
 - `edge_ai.py`: Edge AI logic and processing.
 - `anonymizer.py`: Data anonymization tools for privacy compliance.
