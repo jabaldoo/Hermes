@@ -802,7 +802,8 @@ class Symulator:
         inc = {
             "id": self.nr_incydentu, "typ": typ, "sektor": sid, "lat": lat, "lon": lon, "osoby": osoby,
             "opis": opis, "t": self.czas, "dron_id": d["id"], "aktywny": True, "dostarczony": False,
-            "zdjecie": zdjecie, "osoby_na_zdjeciu": zdjecie["osoby"] if zdjecie else 0,
+            # liczba osob na zdjeciu tylko, gdy katalog ja podaje (pole 'osoby' jest opcjonalne)
+            "zdjecie": zdjecie, "osoby_na_zdjeciu": zdjecie.get("osoby", 0) if zdjecie else 0,
             "decyzja": None, "sluzby_powiadomione": False, "akcja": None, "rodzaj_akcji": None,
             "wykonawca": None, "schron": None, "g_lat": lat, "g_lon": lon,
             "podazyli": None, "w_schronie": None, "t_wezwania": None, "zrzut": [], "wynik": None,

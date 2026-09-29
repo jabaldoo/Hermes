@@ -1,51 +1,9 @@
 {
- "opis": "Zdjęcia poglądowe zgłoszeń (Wikimedia Commons, wolne licencje). Każde zdjęcie identyfikuje nazwa pliku ('plik'); 'zrodlo' to tylko link do strony autora na Commons, wymagany do uznania autorstwa. Liczba 'osoby' = osoby na pewno widoczne na zdjęciu (adnotacja ręczna, ostrożna).",
+ "opis": "Zdjęcia poglądowe zgłoszeń — zdjęcia prasowe i z dronów, użyte wyłącznie poglądowo w demonstratorze. Każde zdjęcie identyfikuje nazwa pliku ('plik'); 'autor' i 'zrodlo' to uznanie autorstwa (fotograf, a gdy nie jest podany — serwis, który opublikował zdjęcie).",
  "zdjecia": [
   {
-   "plik": "powodz-1997-mieszkancy-przy-nabrzezu.jpg",
-   "opis": "Mieszkańcy przy zalanym nabrzeżu",
-   "typy": [
-    "LUDZIE"
-   ],
-   "scenariusze": [
-    "powodz"
-   ],
-   "osoby": 8,
-   "autor": "Tomasz Czarnecki",
-   "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw-03.JPG"
-  },
-  {
-   "plik": "powodz-1997-zalane-osiedle.jpg",
-   "opis": "Zalane osiedle, zatopione samochody",
-   "typy": [
-    "LUDZIE"
-   ],
-   "scenariusze": [
-    "powodz"
-   ],
-   "osoby": 0,
-   "autor": "Aleksander Sikora",
-   "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw-8756.jpg"
-  },
-  {
-   "plik": "powodz-1997-smiglowiec-nad-blokami.jpg",
-   "opis": "Zalane osiedle, śmigłowiec nad blokami",
-   "typy": [
-    "LUDZIE"
-   ],
-   "scenariusze": [
-    "powodz"
-   ],
-   "osoby": 0,
-   "autor": "J.M.K. Kokot",
-   "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw_012.jpg"
-  },
-  {
-   "plik": "powodz-1997-zalana-ulica.jpg",
-   "opis": "Zalana ulica między blokami",
+   "plik": "powodz-1-wyborcza-szczecin.jpg",
+   "opis": "Powódź na Odrze — zdjęcie z drona, zamknięta droga na wale",
    "typy": [
     "LUDZIE",
     "ZATOR"
@@ -53,229 +11,124 @@
    "scenariusze": [
     "powodz"
    ],
-   "osoby": 0,
-   "autor": "J.M.K. Kokot",
-   "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw_020.jpg"
+   "autor": "Gazeta Wyborcza Szczecin",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://szczecin.wyborcza.pl/szczecin/51,34939,31347989.html#s=S.galeria-K.C-B.1-L.1.duzy"
   },
   {
-   "plik": "ludzie-przy-zamknietym-przejsciu.jpg",
-   "opis": "Osoby przy zamkniętym przejściu",
+   "plik": "powodz-2-korso.jpg",
+   "opis": "Zalany dom odcięty przez wodę — Jawornik Polski, widok z drona",
    "typy": [
     "LUDZIE"
    ],
-   "scenariusze": [],
-   "osoby": 10,
-   "autor": "Syced",
-   "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Police_cordon_at_entrance_of_Shibuya_Mark_City.jpg"
+   "scenariusze": [
+    "powodz"
+   ],
+   "autor": "Widziane z góry (korso24.pl)",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://korso24.pl/podkarpacie/rok-po-powodzi-w-gminie-jawornik-polski-jak-wyglada-dzis-zycie-mieszkancow-zdjecia/Fa36fz4mMPDsvIYkci33/galeria?page=1"
   },
   {
-   "plik": "tlum-biegnacy-ulica.jpg",
-   "opis": "Grupa osób biegnących ulicą",
+   "plik": "powodz-3-fotolotnia.jpg",
+   "opis": "Umacnianie wału workami z piaskiem — powódź 2010, San i Wisła, widok z góry",
    "typy": [
     "LUDZIE",
-    "PANIKA"
+    "ZAGROZENIE"
    ],
-   "scenariusze": [],
-   "osoby": 6,
-   "autor": "Deans Charbal",
-   "licencja": "CC BY-SA 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Summer_Streets_NYC_2023-08-19,_in_the_runners_crowd_on_Park_Av_and_56th,_Manhattan,_New_York.jpg"
+   "scenariusze": [
+    "powodz"
+   ],
+   "autor": "Marek Samojeden (fotolotnia.pl)",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://fotolotnia.pl/powodz/"
   },
   {
-   "plik": "biegnaca-grupa-osob.jpg",
-   "opis": "Biegnąca grupa osób",
+   "plik": "wypadek-1-dziennik-zachodni.jpg",
+   "opis": "Przewrócona ciężarówka z farbami na DK1 w Tychach — zdjęcie z drona",
    "typy": [
-    "PANIKA"
+    "WYPADEK",
+    "ZATOR",
+    "ZAGROZENIE"
    ],
    "scenariusze": [],
-   "osoby": 7,
-   "autor": "Peter van der Sluijs",
-   "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:A_lot_of_people_running.JPG"
+   "autor": "112Tychy.pl (Dziennik Zachodni)",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://dziennikzachodni.pl/wypadek-w-tychach-tir-wywrocil-sie-na-dk1-zdjecia-z-drona-przewozil-farby-kierowca-jechal-zbyt-szybko/gh/c4-14124121"
   },
   {
-   "plik": "cwiczenia-ratownicy-przy-poszkodowanym.jpg",
-   "opis": "Ratownicy przy osobie poszkodowanej (ćwiczenia)",
+   "plik": "wypadek-2-fakt.png",
+   "opis": "Rozbity samochód na autostradzie, policja na miejscu",
    "typy": [
+    "WYPADEK",
     "POMOC"
    ],
    "scenariusze": [],
-   "osoby": 6,
-   "autor": "Klapka paradaja",
-   "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_05.jpg"
+   "autor": "Fakt.pl",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://www.fakt.pl/wydarzenia/swiat/co-za-wypadek-8-ferrari-3-mercedesy-i-lamborghini/2jzj4hn"
   },
   {
-   "plik": "cwiczenia-ewakuacja-poszkodowanego.jpg",
-   "opis": "Ewakuacja osoby poszkodowanej (ćwiczenia)",
+   "plik": "panika-1-getty-images.jpg",
+   "opis": "Ludzie w panice uciekają przez plac",
    "typy": [
-    "POMOC"
+    "PANIKA",
+    "LUDZIE"
    ],
    "scenariusze": [],
-   "osoby": 9,
-   "autor": "Klapka paradaja",
-   "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_14.jpg"
+   "autor": "Getty Images",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://www.gettyimages.com/photos/crowd-panic?page=2"
   },
   {
-   "plik": "cwiczenia-grupa-ratownikow.jpg",
-   "opis": "Grupa ratowników przy poszkodowanym (ćwiczenia)",
+   "plik": "panika-2-linkedin.jpg",
+   "opis": "Tłum w panice biegnie przez skrzyżowanie",
    "typy": [
-    "POMOC"
+    "PANIKA",
+    "LUDZIE"
    ],
    "scenariusze": [],
-   "osoby": 6,
-   "autor": "Klapka paradaja",
-   "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_04.jpg"
+   "autor": "LinkedIn — Ananya Mudgal",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://www.linkedin.com/pulse/when-panic-takes-over-logic-goes-out-window-ananya-mudgal"
   },
   {
-   "plik": "pozar-stodoly.jpg",
-   "opis": "Pożar traw przy zabudowaniu",
+   "plik": "pozar-1-miejski-reporter.jpg",
+   "opis": "Pożar budynku mieszkalnego przy osiedlu, akcja PSP — zdjęcie z drona",
+   "typy": [
+    "POZAR",
+    "POMOC"
+   ],
+   "scenariusze": [
+    "pozar:dom",
+    "pozar:blok"
+   ],
+   "autor": "Miejski Reporter (Facebook)",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://www.facebook.com/watch/?v=346378547824115"
+  },
+  {
+   "plik": "pozar-2-dziennik-zachodni.jpg",
+   "opis": "Pożar katedry w Sosnowcu — dach w ogniu, drabina PSP",
+   "typy": [
+    "POZAR"
+   ],
+   "scenariusze": [],
+   "autor": "Dziennik Zachodni",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://dziennikzachodni.pl/pozar-katedry-w-sosnowcu-zdjecia-i-wideo-z-drona-widok-wstrzasajacy/gh/3626446"
+  },
+  {
+   "plik": "pozar-3-ostrow24.jpg",
+   "opis": "Pożar dachu budynku przy ul. Wrocławskiej w Ostrowie Wlkp. — zdjęcie z drona",
    "typy": [
     "POZAR"
    ],
    "scenariusze": [
-    "pozar:las"
+    "pozar:magazyn"
    ],
-   "osoby": 0,
-   "autor": "Rafał T",
-   "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:%C5%BBd%C5%BCary,_2012-_Po%C5%BCar_stodo%C5%82y_-_fotopolska.eu_(299122).jpg"
-  },
-  {
-   "plik": "pozar-budynku-woz-strazacki.jpg",
-   "opis": "Zadymienie, wóz strażacki na miejscu",
-   "typy": [
-    "POZAR"
-   ],
-   "scenariusze": [],
-   "osoby": 0,
-   "autor": "Ktkvtsh",
-   "licencja": "CC BY 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Structure_Fire_in_Union,_Mississippi_01.jpg"
-  },
-  {
-   "plik": "strazacy-przy-plonacym-domu.jpg",
-   "opis": "Strażacy przy płonącym domu",
-   "typy": [
-    "POZAR"
-   ],
-   "scenariusze": [],
-   "osoby": 5,
-   "autor": "Kiwiz1338",
-   "licencja": "CC BY 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:New_Zealand_firefighters_outside_a_house_fire_in_Palmerston_North,_2019.jpg"
-  },
-  {
-   "plik": "kolizja-na-skrzyzowaniu.jpg",
-   "opis": "Kolizja na skrzyżowaniu, osoby przy pojazdach",
-   "typy": [
-    "WYPADEK"
-   ],
-   "scenariusze": [],
-   "osoby": 10,
-   "autor": "Alina Zienowicz Ala z",
-   "licencja": "CC BY 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(1).JPG"
-  },
-  {
-   "plik": "miejsce-wypadku-sluzby.jpg",
-   "opis": "Miejsce wypadku, służby i świadkowie",
-   "typy": [
-    "WYPADEK"
-   ],
-   "scenariusze": [],
-   "osoby": 12,
-   "autor": "Alina Zienowicz Ala z",
-   "licencja": "CC BY 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(4).JPG"
-  },
-  {
-   "plik": "rozbity-autobus.jpg",
-   "opis": "Rozbity autobus",
-   "typy": [
-    "WYPADEK"
-   ],
-   "scenariusze": [],
-   "osoby": 2,
-   "autor": "Szmyk",
-   "licencja": "CC BY-SA 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Wypadek_autobusu.jpg"
-  },
-  {
-   "plik": "przewrocona-ciezarowka.jpg",
-   "opis": "Przewrócona ciężarówka na jezdni",
-   "typy": [
-    "WYPADEK"
-   ],
-   "scenariusze": [],
-   "osoby": 0,
-   "autor": "Sssine21",
-   "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Wypadek_tira.jpg"
-  },
-  {
-   "plik": "zablokowana-ulica-po-wypadku.jpg",
-   "opis": "Zablokowana ulica po zdarzeniu",
-   "typy": [
-    "ZATOR"
-   ],
-   "scenariusze": [],
-   "osoby": 12,
-   "autor": "Alina Zienowicz Ala z",
-   "licencja": "CC BY 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(2).JPG"
-  },
-  {
-   "plik": "korek-widok-z-powietrza.jpg",
-   "opis": "Zator na drodze — widok z powietrza",
-   "typy": [
-    "ZATOR"
-   ],
-   "scenariusze": [],
-   "osoby": 0,
-   "autor": "Chris",
-   "licencja": "CC BY-SA 2.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Traffic_jam,_A14_westbound,_south_of_Molesworth,_aerial_2014_-_geograph.org.uk_-_4035584.jpg"
-  },
-  {
-   "plik": "niewybuch-bomba-lotnicza.jpg",
-   "opis": "Niewybuch (bomba lotnicza) odsłonięty w gruncie",
-   "typy": [
-    "ZAGROZENIE"
-   ],
-   "scenariusze": [],
-   "osoby": 0,
-   "autor": "Holger Weinandt",
-   "licencja": "CC BY-SA 3.0 de",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Fundort_Luftmine_06_Koblenz_2011.jpg"
-  },
-  {
-   "plik": "odgrodzony-teren-sluzby.jpg",
-   "opis": "Odgrodzony teren, służby na miejscu",
-   "typy": [
-    "ZAGROZENIE"
-   ],
-   "scenariusze": [],
-   "osoby": 2,
-   "autor": "David Dixon",
-   "licencja": "CC BY-SA 2.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Police_Cordon,_Bury_Road_-_geograph.org.uk_-_3097220.jpg"
-  },
-  {
-   "plik": "niewybuch-zamknieta-ulica.jpg",
-   "opis": "Zamknięta ulica — strefa zagrożenia",
-   "typy": [
-    "ZAGROZENIE"
-   ],
-   "scenariusze": [],
-   "osoby": 1,
-   "autor": "Kestrel",
-   "licencja": "CC BY-SA 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Unexploded_Ordnance_Disposal_in_Ariake,_Tokyo,_on_June_5,_2019_P6059117.jpg"
+   "autor": "ostrow24.tv",
+   "licencja": "© wszelkie prawa zastrzeżone",
+   "zrodlo": "https://www.ostrow24.tv/news/80485-pozar-budynku-przy-ul-wroclawskiej-z-drona.html"
   }
  ]
 }

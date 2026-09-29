@@ -57,7 +57,7 @@ def test_zgloszenie_ma_zdjecie_a_liczba_osob_tylko_gdy_widac_je_na_zdjeciu(sym):
     assert pub and all(p["zdjecie"] and p["zdjecie"]["url"].startswith("/api/zdjecie/") for p in pub)
     for p in pub:
         katalog = next(z for z in sym.katalog_zdjec if z["plik"] in p["zdjecie"]["url"])
-        assert p["osoby_na_zdjeciu"] == katalog["osoby"]
+        assert p["osoby_na_zdjeciu"] == katalog.get("osoby", 0)
 
 
 def test_operator_wysyla_drona_prowadzenie_do_schronu(sym):
