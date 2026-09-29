@@ -1,4 +1,4 @@
-# Hermes 🏛️
+# Hermes 
 
 ![Hermes Icon](https://github.com/jabaldoo/Hermes/blob/main/hermes.png)
 
