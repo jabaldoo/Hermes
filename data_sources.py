@@ -7,6 +7,7 @@ import io
 import json
 import math
 import os
+import re
 import sys
 import time
 
@@ -27,9 +28,11 @@ SCHRONY_CSV_URL = "https://api.dane.gov.pl/resources/1393918,punkty-schronienia-
 COPERNICUS_EMS_URL = "https://emergency.copernicus.eu/mapping/list-of-activations-rapid"
 
 ZRODLA_DANYCH = [
+    {"nazwa": "OpenStreetMap - mapa bazowa", "typ_uzycia": "realne (kafle, ODbL)",
+     "url": "https://www.openstreetmap.org", "jak": "Domyslna warstwa tla mapy"},
     {"nazwa": "Geoportal - Ortofotomapa", "typ_uzycia": "realne (WMTS)",
      "url": "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution",
-     "jak": "Domyslna warstwa tla mapy (EPSG:3857)"},
+     "jak": "Alternatywna warstwa tla mapy (EPSG:3857)"},
     {"nazwa": "Geoportal - PRG (granice)", "typ_uzycia": "realne (WMS)",
      "url": GEOPORTAL_PRG_WMS, "jak": "Nakladka granic gmin (A03_Granice_gmin)"},
     {"nazwa": "KG PSP - Punkty schronienia w Polsce", "typ_uzycia": "realne (dane.gov.pl, CC BY 4.0)",
@@ -50,12 +53,12 @@ ZRODLA_DANYCH = [
      "url": COPERNICUS_EMS_URL, "jak": "Lista aktywacji - fallback do mocka"},
     {"nazwa": "Geoportal - BDOT10k/BDOO", "typ_uzycia": "mock",
      "url": "https://mapy.geoportal.gov.pl", "jak": "Drogi/mosty w scenariuszu (ZATOR)"},
-    {"nazwa": "Geoportal - NMT/NMPT", "typ_uzycia": "mock",
-     "url": "https://mapy.geoportal.gov.pl", "jak": "Wysokosci w mock_data.json"},
+    {"nazwa": "Geoportal - NMT/NMPT (wartosci)", "typ_uzycia": "mock",
+     "url": "https://mapy.geoportal.gov.pl", "jak": "Wysokosci sektorow w mock_data.json"},
     {"nazwa": "Geoportal - LiDAR", "typ_uzycia": "mock",
      "url": "https://mapy.geoportal.gov.pl", "jak": "Atrybut sektora"},
-    {"nazwa": "Geoportal - hydrografia", "typ_uzycia": "mock",
-     "url": "https://mapy.geoportal.gov.pl", "jak": "Przebieg Odry i strefa zalewowa w scenariuszu powodzi"},
+    {"nazwa": "OpenStreetMap - przebieg Odry", "typ_uzycia": "realne (Overpass, ODbL)",
+     "url": "https://www.openstreetmap.org", "jak": "Podswietlenie rzeki w scenariuszu powodzi; strefa zalewowa = model (bufor 450 m)"},
     {"nazwa": "Geoportal - zdjecia lotnicze", "typ_uzycia": "mock",
      "url": "https://mapy.geoportal.gov.pl", "jak": "Przykladowe klatki w samples/"},
     {"nazwa": "Lasy Panstwowe - BDL", "typ_uzycia": "mock",
@@ -145,12 +148,22 @@ def pobierz_copernicus_ems_aktywne():
     return _z_cache("ems", 600, _pobierz)
 
 
+def _popraw_adres(adres):
+    """Adresy w zbiorze KG PSP bywaja niechlujne: 'ul.Barlickiego 20', 'ul. Legnicka brak' - drony je odczytuja."""
+    adres = re.sub(r"\b(ul|al|pl|os|gen|ks|św)\.(?=\S)", r"\1. ", adres)
+    adres = re.sub(r"\s+brak\b", "", adres)
+    return re.sub(r"\s{2,}", " ", adres).strip()
+
+
 def pobierz_schrony():
     """Punkty schronienia KG PSP w obszarze demo - z lokalnego snapshotu (dziala offline)."""
     if not os.path.exists(_PLIK_SCHRONOW):
         return {"zrodlo": "brak snapshotu - uruchom: python data_sources.py --odswiez-schrony", "punkty": []}
     with open(_PLIK_SCHRONOW, "r", encoding="utf-8") as f:
-        return json.load(f)
+        dane = json.load(f)
+    for p in dane["punkty"]:
+        p["adres"] = _popraw_adres(p.get("adres", ""))
+    return dane
 
 
 def odswiez_schrony(bbox=(51.05, 16.95, 51.15, 17.15)):
@@ -467,6 +480,17 @@ def pobierz_osiedla():
     if not os.path.exists(_PLIK_OSIEDLI):
         return {"osiedla": []}
     with open(_PLIK_OSIEDLI, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+_PLIK_ODRY = os.path.join(_TUTAJ, "data", "odra.json")
+
+
+def pobierz_odre():
+    """Przebieg Odry z OSM (snapshot) + modelowa strefa zalewowa; None -> fallback do mocka."""
+    if not os.path.exists(_PLIK_ODRY):
+        return None
+    with open(_PLIK_ODRY, "r", encoding="utf-8") as f:
         return json.load(f)
 
 

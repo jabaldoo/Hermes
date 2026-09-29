@@ -7,8 +7,8 @@ const STATUSY = ["OK", "POMOC", "WYPADEK", "POZAR", "ZAGROZENIE", "PANIKA", "LUD
 const TYPY_INC = STATUSY.slice(1);
 const KOLOR = {
   OK: "#2fd98f", LUDZIE: "#ffd23f", PANIKA: "#ff6bd6", ZATOR: "#ff9f43", WYPADEK: "#8b9dff", POZAR: "#ff5a1f",
-  POMOC: "#ff3355", ZAGROZENIE: "#b56cff", ALERT: "#ff3355", INFO: "#7aa2ff", KOMUNIKAT: "#8fb8e6", MESH: "#8fb8e6",
-  SLUZBY: "#60a5fa", EWAKUACJA: "#34d399", ZRZUT: "#e2e8f0", DECYZJA: "#8fb8e6",
+  POMOC: "#ff3355", ZAGROZENIE: "#b56cff", ALERT: "#ff3355", INFO: "#7aa2ff", KOMUNIKAT: "#7cc4ff", MESH: "#7cc4ff",
+  SLUZBY: "#60a5fa", EWAKUACJA: "#34d399", ZRZUT: "#e2e8f0", DECYZJA: "#7cc4ff",
 };
 const NAZWA = { OK: "OK", LUDZIE: "LUDZIE", PANIKA: "PANIKA", ZATOR: "ZATOR", WYPADEK: "WYPADEK", POZAR: "POŻAR",
   POMOC: "POMOC", ZAGROZENIE: "ZAGROŻENIE", ALERT: "ALERT", INFO: "INFO", KOMUNIKAT: "KOMUNIKAT", MESH: "MESH",
@@ -59,7 +59,7 @@ const DRON_SVG = `<svg class="dron-svg" viewBox="-18 -18 36 36" aria-hidden="tru
   <path d="M0-15.5 3.4-10H-3.4z" fill="currentColor"/>
 </svg>`;
 
-const ui = { stan: null, ids: new Set(), dzwiek: false, zakladka: "zdarzenia", sygSektorow: "", sygKrokow: "",
+const ui = { stan: null, ids: new Set(), dzwiek: false, zakladka: "incydenty", sygSektorow: "", sygKrokow: "",
   sygStat: "", trybAnon: "blur", ws: null, polling: null, ostatnieId: 0, incDane: [], incPodswietlony: null };
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -98,20 +98,24 @@ function inicjalizujMape() {
   const mapa = L.map("mapa", { zoomControl: false, zoomSnap: 0.25 });
   M.mapa = mapa;
   L.control.zoom({ position: "bottomleft" }).addTo(mapa);
-  [["pRegiony", 350], ["pScen", 360], ["pStrefy", 370], ["pSektory", 380], ["pMesh", 430], ["pBudynki", 435], ["pSchrony", 445],
-    ["pUlice", 455], ["pEtykiety", 460], ["pStacje", 610], ["pGrupy", 620]]
+  // pRzeka nad regionami, sektorami i lączami mesh - inaczej Odra ginie w centrum miasta pod nakladkami
+  [["pRegiony", 350], ["pScen", 360], ["pStrefy", 370], ["pSektory", 380], ["pMesh", 430], ["pBudynki", 435], ["pRzeka", 440],
+    ["pSchrony", 445], ["pUlice", 455], ["pEtykiety", 460], ["pStacje", 610], ["pGrupy", 620]]
     .forEach(([n, z]) => { mapa.createPane(n).style.zIndex = z; });
   mapa.getPane("pUlice").style.pointerEvents = "none";
-  // nazwy ulic (etykiety OSM) nad ortofotomapa - dopiero po przyblizeniu
-  M.ulice = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
-    { pane: "pUlice", minZoom: 15, maxZoom: 19, subdomains: "abcd", className: "warstwa-ulice", attribution: "Etykiety © OpenStreetMap © CARTO" }).addTo(mapa);
+  mapa.getPane("pRzeka").style.pointerEvents = "none";
+  // nazwy ulic (etykiety OSM) nad ortofotomapa - dopiero po przyblizeniu; OSM i Ciemna maja wlasne etykiety
+  // kafle CARTO ida przez backend (/kafle/carto/...), ktory dokleja klucz API z .env
+  M.ulice = L.tileLayer("/kafle/carto/dark_only_labels/{z}/{x}/{y}.png",
+    { pane: "pUlice", minZoom: 15, maxZoom: 19, className: "warstwa-ulice", attribution: "Etykiety © OpenStreetMap © CARTO" });
 
   M.bazowe = {
-    orto: L.tileLayer(CFG.ortoWmts, { maxZoom: 19, className: "warstwa-orto", attribution: 'Ortofotomapa © <a href="https://www.geoportal.gov.pl">GUGiK</a>' }),
-    ciemna: L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" }),
     osm: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, className: "warstwa-osm", attribution: "© OpenStreetMap" }),
+    orto: L.tileLayer(CFG.ortoWmts, { maxZoom: 19, className: "warstwa-orto", attribution: 'Ortofotomapa © <a href="https://www.geoportal.gov.pl">GUGiK</a>' }),
+    ciemna: L.tileLayer("/kafle/carto/dark_all/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap © CARTO" }),
   };
-  M.bazowe.orto.addTo(mapa);
+  M.baza = "osm";
+  M.bazowe.osm.addTo(mapa);
   M.prg = L.tileLayer.wms(CFG.prgWms, { layers: "A03_Granice_gmin", format: "image/png", transparent: true, version: "1.3.0", className: "warstwa-prg", attribution: "PRG © GUGiK" });
   mapa.on("zoomstart", () => mapa.getContainer().classList.add("bez-animacji"));
   mapa.on("zoomend", () => {
@@ -135,8 +139,8 @@ function zbudujWarstwyStatyczne(w) {
   dopasujWidok();
   w.sektory.forEach((s) => {
     // sektory nie reaguja na klikniecie - klik w mape nie otwiera zadnych okienek
-    const r = L.rectangle([[s.lat_min, s.lon_min], [s.lat_max, s.lon_max]], { pane: "pSektory", weight: 0.8, interactive: false,
-      color: "rgba(220,235,255,0.35)", fillColor: "#9fb4d8", fillOpacity: 0.03 }).addTo(M.mapa);
+    const r = L.rectangle([[s.lat_min, s.lon_min], [s.lat_max, s.lon_max]], { pane: "pSektory", stroke: false, interactive: false,
+      fillColor: "#9fb4d8", fillOpacity: 0.03 }).addTo(M.mapa);
     M.sektory[s.id] = r;
     M.etykiety.push(L.marker([s.lat_max, s.lon_min], { pane: "pEtykiety", interactive: false,
       icon: L.divIcon({ className: "etykieta-sektora", html: `<span>${s.id}</span>`, iconSize: null, iconAnchor: [-5, -4] }) }).addTo(M.mapa));
@@ -157,7 +161,7 @@ function zbudujWarstwyStatyczne(w) {
   // stacje-przekazniki (range extenders) i ich regiony wg granic osiedli
   w.stacje.forEach((s, i) => { M.kolorStacji[s.id] = KOLORY_REGIONOW[i % KOLORY_REGIONOW.length]; });
   M.regiony = L.layerGroup(w.osiedla.map((o) => L.polygon(o.polygon, { pane: "pRegiony", interactive: false,
-    color: M.kolorStacji[o.stacja], weight: 1, opacity: 0.45, fillColor: M.kolorStacji[o.stacja], fillOpacity: 0.07 }))).addTo(M.mapa);
+    stroke: false, fillColor: M.kolorStacji[o.stacja], fillOpacity: 0.07 }))).addTo(M.mapa);
   M.zasiegi = L.layerGroup(w.stacje.map((s) => L.circle([s.lat, s.lon], { pane: "pRegiony", radius: w.zasieg_km * 1000, interactive: false,
     color: M.kolorStacji[s.id], weight: 1, dashArray: "3 6", fill: false })));
   w.stacje.forEach((s) => {
@@ -176,14 +180,20 @@ function zbudujWarstwyStatyczne(w) {
   $("#liczba-budynkow").textContent = w.budynki.length;
 
   const scen = M.scen;
-  scen.odra = L.polyline(w.odra, { pane: "pScen", color: "#5aa9ff", weight: 5, opacity: 0.85, lineCap: "round" });
-  scen.strefa_zalewowa = L.polygon(w.strefa_zalewowa, { pane: "pScen", color: "#5aa9ff", weight: 1, dashArray: "4 5", fillColor: "#3b82f6", fillOpacity: 0.2 })
-    .bindTooltip("Strefa zalewowa (hydrografia — mock)", { sticky: true });
+  // Odra (OSM): ciemna obwodka + jasny nurt + plynace kreski, zeby rzeka odcinala sie od kazdej mapy bazowej
+  scen.odra = L.layerGroup([
+    L.polyline(w.odra, { pane: "pRzeka", color: "#03101f", weight: 13, opacity: 0.8, lineCap: "round", lineJoin: "round", interactive: false }),
+    L.polyline(w.odra, { pane: "pRzeka", color: "#2fd4ff", weight: 7, opacity: 1, lineCap: "round", lineJoin: "round", interactive: false }),
+    L.polyline(w.odra, { pane: "pRzeka", color: "#e8fbff", weight: 2, opacity: 0.9, dashArray: "3 14", className: "odra-nurt", interactive: false }),
+  ]);
+  scen.strefa_zalewowa = L.polygon(w.strefa_zalewowa, { pane: "pScen", stroke: false, fillColor: "#1d7fe0", fillOpacity: 0.35 })
+    .bindTooltip("Strefa zalewowa wzdłuż Odry (model: 450 m od nurtu)", { sticky: true });
   scen.las = L.polygon(w.las, { pane: "pScen", color: "#22c55e", weight: 1.2, fillColor: "#16a34a", fillOpacity: 0.22 })
     .bindTooltip("Las Osobowicki — obszar BDL (mock)", { sticky: true });
-  scen.ogniska = L.layerGroup(w.ogniska.map((p) => L.circle(p, { pane: "pScen", radius: 320, color: "#ff5a36", weight: 1.5, fillColor: "#ff5a36", fillOpacity: 0.35, className: "ognisko" })));
+  scen.ogniska = L.layerGroup();
+  ustawOgniska(w.ogniska);
 
-  L.marker([w.baza.lat, w.baza.lon], { zIndexOffset: 500, icon: ikonaHtml(`<div class="baza-czk"><svg viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7z" fill="#0a1422" stroke="#8fb8e6" stroke-width="1.6"/><path d="M12 7.5v8m-3.5-6a5 5 0 0 1 7 0m-9-2a8 8 0 0 1 11 0" stroke="#8fb8e6" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg><span>CZK</span></div>`) })
+  L.marker([w.baza.lat, w.baza.lon], { zIndexOffset: 500, icon: ikonaHtml(`<div class="baza-czk"><svg viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7z" fill="#050b15" stroke="#7cc4ff" stroke-width="1.6"/><path d="M12 7.5v8m-3.5-6a5 5 0 0 1 7 0m-9-2a8 8 0 0 1 11 0" stroke="#7cc4ff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg><span>CZK</span></div>`) })
     .bindTooltip(`<b>${esc(w.baza.nazwa)}</b><br>Węzeł główny sieci mesh`, { direction: "top" }).addTo(M.mapa);
 }
 
@@ -198,7 +208,7 @@ async function zaladujSchrony() {
   }));
   if ($("#w-schrony").checked) M.schrony.addTo(M.mapa);
   $("#liczba-schronow").textContent = dane.punkty.length;
-  $("#schrony-opis").innerHTML = `Na mapie <b>${dane.punkty.length}</b> punktów schronienia z obszaru demo — oficjalny zbiór KG PSP „Punkty schronienia w Polsce” (dane.gov.pl, CC BY 4.0, aktualizacja co tydzień${dane.pobrano ? `, pobrano ${esc(dane.pobrano)}` : ""}). Drony prowadzą grupy do najbliższego schronu (preferowane całodobowe), omijając strefy wojskowe.`;
+  $("#schrony-opis").innerHTML = `Na mapie <b>${dane.punkty.length}</b> punktów schronienia z obszaru demo — oficjalny zbiór KG PSP „Punkty schronienia w Polsce” (dane.gov.pl, CC BY 4.0, aktualizacja co tydzień${dane.pobrano ? `, pobrano ${esc(dane.pobrano)}` : ""}). Przy alarmie drony prowadzą grupy do najbliższego schronu (preferowane całodobowe), omijając strefy wojskowe. Przy powodzi wybierają budynek poza strefą zalewową, a przy pożarze lasu — punkt zbiórki poza lasem.`;
 }
 
 // ---------------------------------------------------------------- aktualizacje mapy
@@ -209,8 +219,7 @@ function aktualizujSektory(lista) {
   ui.sygSektorow = syg;
   lista.forEach((s) => {
     const alarm = s.status !== "OK";
-    M.sektory[s.id].setStyle({ color: alarm ? KOLOR[s.status] : "rgba(220,235,255,0.35)", weight: alarm ? 1.4 : 0.8,
-      fillColor: alarm ? KOLOR[s.status] : "#9fb4d8", fillOpacity: alarm ? 0.1 : 0.03 });
+    M.sektory[s.id].setStyle({ fillColor: alarm ? KOLOR[s.status] : "#9fb4d8", fillOpacity: alarm ? 0.12 : 0.03 });
   });
   return true;
 }
@@ -296,26 +305,39 @@ function aktualizujDrony(drony) {
     const el = m.getElement()?.firstElementChild;
     if (!el) return;
     el.className = ["dron", d.tryb, d.nadaje && "nadaje", !d.zywy && "utracony", d.zywy && d.hops === null && "offline",
-      (d.faza === "rtb" || d.faza === "ladowanie") && "rtb", d.faza === "prowadzi" && "prowadzi"].filter(Boolean).join(" ");
+      (d.faza === "rtb" || d.faza === "ladowanie") && "rtb", d.faza === "prowadzi" && "prowadzi",
+      d.faza === "uziemiony" && "uziemiony"].filter(Boolean).join(" ");
     el.querySelector(".dron-svg").style.transform = `rotate(${d.kurs}deg)`;
     el.querySelector(".dron-etykieta").innerHTML = !d.zywy ? `${d.id} · UTRACONY`
+      : d.faza === "uziemiony" ? `${d.id} · UZIEMIONY (DESZCZ)`
       : `${d.id} · ${Math.round(d.bateria)}%${d.faza === "prowadzi" ? " · PROWADZI" : ""}${d.bufor ? ` · <em>BUF ${d.bufor}</em>` : d.hops === null ? " · <em>OFFLINE</em>" : ""}`;
   });
 }
 
 function aktualizujMesh(linki) {
   const widoczne = $("#w-mesh").checked;
-  while (M.mesh.length < linki.length) M.mesh.push(L.polyline([[0, 0], [0, 0]], { pane: "pMesh", className: "mesh-link", color: "#8fb8e6", interactive: false }));
+  while (M.mesh.length < linki.length) M.mesh.push(L.polyline([[0, 0], [0, 0]], { pane: "pMesh", className: "mesh-link", color: "#1f58a6", interactive: false }));
   M.mesh.forEach((l, i) => {
     const k = linki[i];
     if (!k || !widoczne) { if (M.mapa.hasLayer(l)) l.remove(); return; }
     l.setLatLngs([k.a, k.b]);
-    l.setStyle({ weight: 1.6 + 2.4 * k.jakosc, opacity: 0.55 + 0.45 * k.jakosc });
+    l.setStyle({ weight: 1.8 + 2.4 * k.jakosc, opacity: 0.7 + 0.3 * k.jakosc });
     if (!M.mapa.hasLayer(l)) l.addTo(M.mapa);
   });
 }
 
-function aktualizujWarstwyScenariusza(warstwy) {
+// ogniska zaleza od wylosowanego wariantu pozaru (las, dom, blok, hala) - [lat, lon, promien_m]
+function ustawOgniska(lista) {
+  const syg = JSON.stringify(lista || []);
+  if (syg === M.sygOgnisk) return;
+  M.sygOgnisk = syg;
+  M.scen.ogniska.clearLayers();
+  (lista || []).forEach(([lat, lon, r]) => L.circle([lat, lon], { pane: "pScen", radius: r || 320, color: "#ff5a36", weight: 1.5,
+    fillColor: "#ff5a36", fillOpacity: 0.35, className: "ognisko", interactive: false }).addTo(M.scen.ogniska));
+}
+
+function aktualizujWarstwyScenariusza(warstwy, ogniska) {
+  if (ogniska) ustawOgniska(ogniska);
   const pokaz = $("#w-scen").checked;
   Object.entries(M.scen).forEach(([k, warstwa]) => {
     const ma = pokaz && warstwy.includes(k);
@@ -365,15 +387,24 @@ function obsluzStan(s) {
   $$("#seg-predkosc button").forEach((b) => b.classList.toggle("aktywny", +b.dataset.x === s.predkosc));
   const hud = $("#hud-scenariusz");
   if (hud.textContent !== s.scenariusz.nazwa) hud.textContent = s.scenariusz.nazwa;
+  // nowy wariant ze wskazanym rejonem zdarzenia (np. plonacy budynek) - mapa podlatuje w jego okolice
+  const sygScen = `${s.scenariusz.id}|${s.scenariusz.wariant}`;
+  if (sygScen !== ui.sygScen) {
+    const o = s.scenariusz.obszar;
+    if (o) M.mapa.flyTo([o.lat, o.lon], o.r_km > 1.2 ? 14 : 15, { duration: 1.2 });
+    else if (ui.sygScen && ui.bylObszar) dopasujWidok();
+    ui.sygScen = sygScen;
+    ui.bylObszar = !!o;
+  }
 
   renderujMisje(s.scenariusz);
-  renderujPogode(s.pogoda);
+  renderujPogode(s.pogoda, s.scenariusz.godzina_startu, s.czas);
   aktualizujSektory(s.sektory);
   aktualizujIncydenty(s.incydenty);
   aktualizujGrupy(s.grupy);
   aktualizujDrony(s.drony);
   aktualizujMesh(s.linki);
-  aktualizujWarstwyScenariusza(s.scenariusz.warstwy);
+  aktualizujWarstwyScenariusza(s.scenariusz.warstwy, s.scenariusz.ogniska);
   renderujStatystyki(s);
   renderujFlote(s.drony);
   aktualizujStacje(s.stacje);
@@ -414,12 +445,27 @@ function renderujMisje(sc) {
   $("#misja-postep-opis").textContent = kroki.length ? `${wykonane} z ${kroki.length} kroków wykonanych` : "brak skryptu scenariusza";
 }
 
-function renderujPogode(p) {
+// godzina w scenariuszu = godzina startu scenariusza + czas symulacji
+function godzinaScenariusza(start, czas) {
+  const [h, m] = (start || "12:00").split(":").map(Number);
+  const min = (h * 60 + m + Math.floor(czas / 60)) % 1440;
+  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+}
+
+const LIMIT_OPADU_STD = 4; // mm/h - powyzej lataja tylko drony w wersji deszczowej (IP55)
+const liczbaPl = (x, n = 1) => x.toFixed(n).replace(".", ",");
+
+function renderujPogode(p, start, czas) {
   const ik = p.opad_mm_h > 0 ? IKONY.DESZCZ : p.temperatura_c >= 28 ? IKONY.SLONCE : IKONY.CHMURA;
-  const html = `${ik}<small>SCEN.</small><b>${p.temperatura_c.toFixed(1)}°C · ${p.wiatr_kmh} km/h${p.opad_mm_h > 0 ? ` · ${p.opad_mm_h} mm/h` : ` · RH ${p.wilgotnosc_proc}%`}</b>`;
+  const ulewa = p.opad_mm_h >= LIMIT_OPADU_STD;
+  const html = `<span class="pg" title="Godzina w scenariuszu"><small>GODZINA</small><b>${godzinaScenariusza(start, czas)}</b></span>`
+    + `<span class="pg">${ik}<small>TEMP.</small><b>${liczbaPl(p.temperatura_c)}°C</b></span>`
+    + `<span class="pg"><small>WIATR</small><b>${Math.round(p.wiatr_kmh)} km/h</b></span>`
+    + `<span class="pg${ulewa ? " ulewa" : ""}"${ulewa ? ` title="Opad powyżej limitu standardowych BSP (${LIMIT_OPADU_STD} mm/h) — latają tylko drony w wersji deszczowej IP55"` : ""}>`
+    + `<small>OPAD</small><b>${p.opad_mm_h > 0 ? `${liczbaPl(p.opad_mm_h)} mm/h` : "brak"}</b></span>`;
   const chip = $("#chip-pogoda");
   if (chip.innerHTML !== html) chip.innerHTML = html;
-  chip.title = `Pogoda w scenariuszu (symulowana): ${p.opis}`;
+  chip.title = `Warunki w scenariuszu (symulowane): ${p.opis}`;
 }
 
 let wykres;
@@ -539,8 +585,8 @@ function resetujWidok() {
   M.podswietlenie.clearLayers();
   ui.incDane = [];
   ui.sygCzeka = "";
-  ui.zgZwiniete = false;
-  renderujZgloszenieOperatora();
+  ui.sygListyInc = "";
+  if (ui.zakladka === "incydenty") renderujIncydenty([]);
 }
 
 // ====================================================================== DZWIEK
@@ -670,18 +716,21 @@ function htmlPrzyciskowDecyzji(i) {
 
 function htmlAkcjiDrona(i) {
   if (!i.akcja) return "";
+  // cel prowadzenia zalezy od sytuacji: schron (alarm), budynek poza strefa zalewowa (powodz), punkt zbiorki (las)
   const s = i.schron;
   const gdzie = s ? `<b>${esc(s.adres)}</b> (${s.odleglosc_km} km${s.dostepnosc === "Całodobowa" ? ", 24h" : ""})` : "";
   const kto = esc(i.wykonawca || "dron");
   const teksty = {
     prowadzenie: {
       oczekuje: "Czeka na wolnego drona z głośnikiem.",
-      przydzielona: `${kto} leci do grupy → schron ${gdzie}`,
+      przydzielona: `${kto} leci do grupy → ${esc(s?.do || "")}: ${gdzie}`,
       w_toku: `${kto} prowadzi <b>${i.podazyli}/${i.osoby_grupy}</b> os. → ${gdzie}`,
-      zakonczona: `<b>${i.w_schronie}</b> os. w schronie ${gdzie}`,
+      zakonczona: `<b>${i.w_schronie}</b> os. ${esc(s?.w || "")}: ${gdzie}`,
     },
-    zrzut: { oczekuje: "Czeka na drona z apteczką.", przydzielona: `${kto} leci z apteczką`, w_toku: `${kto} na miejscu — zrzut wykonany, obserwacja`, zakonczona: "Zaopatrzenie dostarczone" },
+    zrzut: { oczekuje: "Czeka na drona z apteczką.", przydzielona: `${kto} leci z apteczką`, w_toku: `${kto} na miejscu — zrzut wykonany, trwa obserwacja`, zakonczona: "Zaopatrzenie dostarczone" },
     ostrzezenie: { oczekuje: "Czeka na drona z głośnikiem.", przydzielona: `${kto} leci ostrzec ludzi`, w_toku: `${kto} nadaje ostrzeżenie`, zakonczona: "Ludzie ostrzeżeni" },
+    odsuniecie: { oczekuje: "Czeka na drona z głośnikiem.", przydzielona: `${kto} leci na miejsce zdarzenia`, w_toku: `${kto} prosi ludzi o odsunięcie się`, zakonczona: "Ludzie odsunięci na bezpieczną odległość" },
+    uspokojenie: { oczekuje: "Czeka na drona z głośnikiem.", przydzielona: `${kto} leci do tłumu`, w_toku: `${kto} uspokaja tłum i wskazuje wyjście`, zakonczona: "Tłum uspokojony" },
     obserwacja: { oczekuje: "Czeka na wolnego drona.", przydzielona: `${kto} leci na miejsce`, w_toku: `${kto} obserwuje miejsce zdarzenia`, zakonczona: "Obserwacja zakończona" },
   };
   return `<div class="inc-linia">${IKONY.EWAKUACJA}<span>${teksty[i.rodzaj_akcji]?.[i.akcja] || ""}</span></div>`;
@@ -709,66 +758,28 @@ function renderujIncydenty(lista) {
       ${i.aktywny ? htmlFoto(i) : ""}
       <p>${esc(i.opis)} <span class="inc-sektor">— zgłasza ${esc(i.zglaszajacy)}</span></p>
       <div class="wsp">${IKONY.PIN}<span>${esc(i.wsp)}</span><button data-kopiuj="${i.lat}, ${i.lon}">kopiuj</button></div>
-      ${htmlStanuZgloszenia(i)}${htmlAkcjiDrona(i)}
+      ${htmlStanuZgloszenia(i)}${i.czeka ? `<div class="zg-zalecenie"><b>Zalecenie:</b> ${esc(i.zalecenie)}</div>` : ""}${htmlAkcjiDrona(i)}
       ${i.zrzut.length ? `<div class="inc-linia zrzut">${IKONY.ZRZUT}<span>Zrzut z drona: ${esc(i.zrzut.join(", "))}</span></div>` : ""}
       ${i.aktywny ? `<div class="inc-decyzje">${htmlPrzyciskowDecyzji(i)}</div>` : ""}
     </article>`).join("");
 }
 
-function renderujZgloszenieOperatora() {
-  const karta = $("#zgloszenie");
-  const pigulka = $("#zg-pigulka");
-  const czekajace = ui.incDane.filter((i) => i.czeka);
-  if (!czekajace.length) {
-    karta.hidden = pigulka.hidden = true;
-    ui.sygKarty = "";
-    return;
-  }
-  if (ui.zgZwiniete) {
-    karta.hidden = true;
-    pigulka.hidden = false;
-    pigulka.textContent = `● ${czekajace.length} ${czekajace.length === 1 ? "zgłoszenie czeka" : "zgłoszeń czeka"} na decyzję — pokaż`;
-    return;
-  }
-  pigulka.hidden = true;
-  const idx = Math.max(0, czekajace.findIndex((i) => i.id === ui.zgWybrany));
-  const i = czekajace[idx];
-  ui.zgWybrany = i.id;
-  const syg = `${i.id}|${czekajace.length}|${idx}`;
-  karta.hidden = false;
-  if (syg === ui.sygKarty) return;
-  ui.sygKarty = syg;
-  karta.innerHTML = `
-    <div class="zg-gora"><b>ZGŁOSZENIE DO DECYZJI</b><span>${idx + 1} z ${czekajace.length}</span>
-      ${czekajace.length > 1 ? '<button data-zg="nastepne" title="Następne zgłoszenie">następne ›</button>' : ""}
-      <button data-zg="zwin" title="Zwiń">zwiń</button></div>
-    <div class="zg-tresc k-${i.typ}">
-      ${htmlFoto(i)}
-      <div class="zg-tytul"><b>${esc(i.nazwa)}</b><span>#${i.id} · ${esc(i.sektor)} · ${tplus(i.t)}</span></div>
-      <p class="ev-opis">${esc(i.opis)} <span class="inc-sektor">— zgłasza ${esc(i.zglaszajacy)}</span></p>
-      <div class="wsp">${IKONY.PIN}<span>${esc(i.wsp)}</span><button data-kopiuj="${i.lat}, ${i.lon}">kopiuj</button></div>
-      <div class="zg-zalecenie"><b>Zalecenie:</b> ${esc(i.zalecenie)}</div>
-      <div class="zg-akcje">${htmlPrzyciskowDecyzji(i)}</div>
-    </div>`;
-}
-
+// klik w ping na mapie - zgloszenie otwiera sie w zakladce "Zgloszenia" (decyzje podejmuje sie tam)
 function pokazZgloszenie(id) {
-  const i = ui.incDane.find((x) => x.id === id);
-  if (i?.czeka) {
-    ui.zgWybrany = id;
-    ui.zgZwiniete = false;
-    renderujZgloszenieOperatora();
-  } else {
-    przelaczZakladke("incydenty");
-    setTimeout(() => $(`.inc[data-id="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
-  }
+  przelaczZakladke("incydenty");
+  setTimeout(() => {
+    const karta = $(`.inc[data-id="${id}"]`);
+    if (!karta) return;
+    karta.scrollIntoView({ behavior: "smooth", block: "center" });
+    karta.classList.add("wskazane");
+    setTimeout(() => karta.classList.remove("wskazane"), 1600);
+  }, 200);
 }
 
 async function odswiezIncydenty() {
   try {
     ui.incDane = await pobierz("/api/incydenty");
   } catch { return; }
-  renderujZgloszenieOperatora();
   if (ui.zakladka === "incydenty") renderujIncydenty(ui.incDane);
 }
 
@@ -790,6 +801,7 @@ function zbudujKarteFloty(d) {
     <div class="fk-gora"><span class="fk-id">${d.id}</span><span class="fk-nazwa">${esc(d.nazwa)}</span>
       <span class="fk-tryb">${d.tryb === "aktywny" ? "AKTYWNY · przewodnik" : "PASYWNY"}<br>${esc(d.sensor)}</span></div>
     <div class="fk-status"></div>
+    <div class="fk-spec"></div>
     <div class="fk-bateria"><div class="pasek"><i></i></div><span class="fk-bat"></span></div>
     <div class="fk-metryki">
       <div><span>Mesh</span><b class="m-mesh"></b></div><div><span>Twarze</span><b class="m-twarze"></b></div>
@@ -808,7 +820,12 @@ function renderujFlote(drony) {
     if (!el) { el = zbudujKarteFloty(d); kont.appendChild(el); }
     el.classList.toggle("aktywny", d.tryb === "aktywny");
     el.classList.toggle("utracony", !d.zywy);
+    el.classList.toggle("uziemiony", d.faza === "uziemiony");
     el.querySelector(".fk-status").textContent = d.status_misji;
+    const spec = `${d.odporny ? "Wersja deszczowa" : "Wersja standardowa"} · ${d.spec}`;
+    const specEl = el.querySelector(".fk-spec");
+    if (specEl.textContent !== spec) specEl.textContent = spec;
+    specEl.classList.toggle("odporny", d.odporny);
     const pasek = el.querySelector(".pasek i");
     pasek.style.width = `${d.bateria}%`;
     pasek.className = d.bateria < 20 ? "niska" : d.bateria < 45 ? "srednia" : "";
@@ -829,7 +846,7 @@ function renderujFlote(drony) {
     btn.textContent = d.zywy ? "Symuluj awarię" : "Przywróć (nowy BSP)";
     btn.className = d.zywy ? "awaria" : "przywroc";
     const glos = el.querySelector(".glos");
-    if (glos) glos.disabled = !d.zywy;
+    if (glos) glos.disabled = !d.zywy || d.faza === "uziemiony";
   });
 }
 
@@ -855,26 +872,49 @@ async function odswiezAnalize() {
     wiersz("Podążyło za dronem (wszyscy)", re.podazanie_proc, cw.podazanie_proc)
     + wiersz("— grupy spokojne", t["realne|LUDZIE"], t["ćwiczenie|LUDZIE"])
     + wiersz("— osoby w panice", t["realne|PANIKA"], t["ćwiczenie|PANIKA"])
-    + wiersz("Dotarło do schronu", re.dotarcie_proc, cw.dotarcie_proc)
+    + wiersz("Dotarło w bezpieczne miejsce", re.dotarcie_proc, cw.dotarcie_proc)
     + wiersz("Reakcja na komunikat głosowy", re.reakcja_proc, cw.reakcja_proc);
   $("#tabela-ewak tbody").innerHTML = a.ostatnie.length ? a.ostatnie.map((w) => {
     const rodzaj = w.rodzaj === "ćwiczenie" ? '<span class="badge cwiczenie">ĆWICZ.</span>' : '<span class="badge realne">REALNE</span>';
     const wynik = w.typ === "KOMUNIKAT"
       ? `<span class="liczba">${w.podazyli}/${w.powiadomieni}</span><small>zareagowało na komunikat</small>`
-      : `<span class="liczba">${w.podazyli}/${w.powiadomieni}</span> podążyło · ${w.w_schronie} w schronie<small>${esc(w.schron_adres)} · ${mmss(w.czas_s || 0)}</small>`;
+      : `<span class="liczba">${w.podazyli}/${w.powiadomieni}</span> podążyło · dotarło ${w.w_schronie}<small>${esc(w.schron_adres)} · ${mmss(w.czas_s || 0)}</small>`;
     return `<tr><td>${(w.ts || "").slice(11, 19)}</td><td>${rodzaj}<small>${w.typ === "KOMUNIKAT" ? "komunikat" : NAZWA[w.typ]}</small></td><td>${esc(w.sektor)}</td><td>${wynik}</td></tr>`;
-  }).join("") : '<tr><td colspan="4" class="pusto">Brak danych — uruchom „Alarm OC” lub „Alarm próbny”.</td></tr>';
+  }).join("") : '<tr><td colspan="4" class="pusto">Brak danych — uruchom „Alarm RCB” lub „Alarm próbny”.</td></tr>';
 }
 const odswiezAnalizeT = throttle(odswiezAnalize, 1500);
 
 // ---------------------------------------------------------------- rodo i dane
 
-async function zaladujAnonimizacje() {
+// klatki testowe z samples/ zmieniaja sie co kilka sekund w losowej kolejnosci (bez powtorzen w jednej rundzie)
+const ANON_ZMIANA_MS = 7000;
+
+function nastepnaProbka() {
+  if (!ui.anonKolejka?.length) {
+    const lista = (ui.anonProbki || []).filter((p) => p !== ui.anonPlik);
+    for (let i = lista.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [lista[i], lista[j]] = [lista[j], lista[i]];
+    }
+    ui.anonKolejka = lista;
+  }
+  return ui.anonKolejka.shift();
+}
+
+async function zaladujAnonimizacje(nowaKlatka = false) {
+  if (nowaKlatka && ui.anonLaduje) return; // poprzednia klatka jeszcze sie liczy - pomijamy ten takt rotacji
   ui.anonZaladowane = true;
+  ui.anonLaduje = true;
   const kont = $("#porownanie");
   kont.style.opacity = 0.5;
   try {
-    const d = await pobierz(`/api/anonimizacja/demo?tryb=${ui.trybAnon}`);
+    const plik = nowaKlatka ? nastepnaProbka() : ui.anonPlik;
+    const r = await fetch(`/api/anonimizacja/demo?tryb=${ui.trybAnon}${plik ? `&plik=${encodeURIComponent(plik)}` : ""}`,
+      { signal: AbortSignal.timeout(12000) });
+    if (!r.ok) throw new Error(r.statusText);
+    const d = await r.json();
+    ui.anonPlik = d.plik;
+    ui.anonProbki = d.probki;
     $("#img-przed").src = `data:image/jpeg;base64,${d.oryginal_base64}`;
     $("#img-po").src = `data:image/jpeg;base64,${d.zanonimizowany_base64}`;
     const p = d.pakiet_do_czk;
@@ -884,6 +924,7 @@ async function zaladujAnonimizacje() {
   } catch {
     $("#rp-status").textContent = "brak klatki";
   }
+  ui.anonLaduje = false;
   kont.style.opacity = 1;
 }
 
@@ -919,12 +960,32 @@ function zbudujKompas() {
   });
 }
 
+// IMGW podaje pomiar co godzine - kompas lekko "oddycha" wokol niego (porywy, zmiennosc kierunku)
+const wiatr = { st: null, kmh: 0, dSt: 0, dKmh: 0 };
+
+function rysujKompas() {
+  if (wiatr.st === null) return;
+  const st = wiatr.st + wiatr.dSt;
+  const kmh = Math.max(0, wiatr.kmh + wiatr.dKmh);
+  const norm = ((Math.round(st) % 360) + 360) % 360;
+  $("#kompas-st").textContent = norm;
+  $("#kompas-kier").textContent = KIERUNKI[Math.round(norm / 22.5) % 16];
+  $("#kompas-kmh").textContent = `${Math.round(kmh)} km/h`;
+  $("#kompas-strzalka").style.transform = `rotate(${st}deg)`;
+}
+
 function ustawKompas(stopnie, kmh) {
   if (stopnie === null || stopnie === undefined) return;
-  $("#kompas-st").textContent = Math.round(stopnie);
-  $("#kompas-kier").textContent = KIERUNKI[Math.round(stopnie / 22.5) % 16];
-  $("#kompas-kmh").textContent = `${kmh} km/h`;
-  $("#kompas-strzalka").style.transform = `rotate(${stopnie}deg)`;
+  wiatr.st = stopnie;
+  wiatr.kmh = kmh;
+  rysujKompas();
+}
+
+function drganieKompasu() {
+  const los = (a) => (Math.random() - 0.5) * a;
+  wiatr.dSt = Math.max(-9, Math.min(9, wiatr.dSt * 0.8 + los(6)));
+  wiatr.dKmh = Math.max(-2.5, Math.min(2.5, wiatr.dKmh * 0.75 + los(1.8)));
+  rysujKompas();
 }
 
 async function zaladujImgw() {
@@ -990,21 +1051,6 @@ function podlaczSterowanie() {
       if (i) M.mapa.flyTo([i.lat, i.lon], 16, { duration: 0.8 });
     }
   });
-  $("#zgloszenie").addEventListener("click", async (e) => {
-    if (await obsluzKlikZgloszenia(e)) return;
-    const zg = e.target.closest("[data-zg]");
-    if (zg?.dataset.zg === "zwin") { ui.zgZwiniete = true; renderujZgloszenieOperatora(); return; }
-    if (zg?.dataset.zg === "nastepne") {
-      const czekajace = ui.incDane.filter((i) => i.czeka);
-      const idx = czekajace.findIndex((i) => i.id === ui.zgWybrany);
-      ui.zgWybrany = czekajace[(idx + 1) % czekajace.length].id;
-      renderujZgloszenieOperatora();
-      return;
-    }
-    const i = ui.incDane.find((x) => x.id === ui.zgWybrany);
-    if (i) M.mapa.flyTo([i.lat, i.lon], 16, { duration: 0.8 });
-  });
-  $("#zg-pigulka").addEventListener("click", () => { ui.zgZwiniete = false; ui.sygKarty = ""; renderujZgloszenieOperatora(); });
   $("#lista-stacji").addEventListener("click", async (e) => {
     const b = e.target.closest("[data-stacja]");
     if (!b) return;
@@ -1038,17 +1084,25 @@ function podlaczSterowanie() {
   const suwak = $("#suwak");
   suwak.addEventListener("input", () => $("#porownanie").style.setProperty("--p", `${suwak.value}%`));
 
+  // nakladka z nazwami ulic tylko nad ortofotomapa - OSM i Ciemna maja je w samych kaflach (bez dublowania napisow)
+  const ustawUlice = () => {
+    const pokaz = $("#w-ulice").checked && M.baza === "orto";
+    if (pokaz && !M.mapa.hasLayer(M.ulice)) M.ulice.addTo(M.mapa);
+    if (!pokaz && M.mapa.hasLayer(M.ulice)) M.ulice.remove();
+  };
   $$('input[name="baza"]').forEach((r) => r.addEventListener("change", () => {
     Object.entries(M.bazowe).forEach(([k, w]) => { if (k === r.value) w.addTo(M.mapa); else w.remove(); });
     M.bazowe[r.value].bringToBack();
+    M.baza = r.value;
+    ustawUlice();
   }));
+  $("#w-ulice").addEventListener("change", ustawUlice);
   const przelacz = (id, warstwa) => $(id).addEventListener("change", (e) => {
     const w = warstwa();
     if (w) e.target.checked ? w.addTo(M.mapa) : w.remove();
   });
   przelacz("#w-prg", () => M.prg);
   przelacz("#w-schrony", () => M.schrony);
-  przelacz("#w-ulice", () => M.ulice);
   przelacz("#w-regiony", () => M.regiony);
   przelacz("#w-zasieg", () => M.zasiegi);
   przelacz("#w-strefy", () => M.strefy);
@@ -1091,4 +1145,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   zaladujZrodla().catch(() => {});
   zaladujImgw();
   setInterval(zaladujImgw, 10 * 60 * 1000);
+  setInterval(drganieKompasu, 1600);
+  setInterval(() => { if (ui.zakladka === "rodo" && !document.hidden) zaladujAnonimizacje(true); }, ANON_ZMIANA_MS);
 });

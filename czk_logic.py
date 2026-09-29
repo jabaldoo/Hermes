@@ -2,7 +2,7 @@
 # format wspolrzednych dla sluzb oraz wybor najblizszych schronow.
 import math
 
-# prowadzenie = dron z glosnikiem prowadzi ludzi do schronu; komunikat = natychmiastowe ostrzezenie
+# prowadzenie = dron z glosnikiem prowadzi ludzi w bezpieczne miejsce; komunikat = natychmiastowe ostrzezenie
 TYPY = {
     "POMOC":      {"nazwa": "Osoby poszkodowane / uwięzione", "sluzby": ["ZRM", "PSP"], "priorytet": 1},
     "WYPADEK":    {"nazwa": "Wypadek drogowy", "sluzby": ["Policja", "ZRM", "PSP"], "priorytet": 1},
@@ -37,25 +37,45 @@ def rekomenduj_akcje(typ, sektor_id=None, liczba_osob=0):
     }
 
 
+# Propozycja dla operatora zalezy od sytuacji (kontekstu scenariusza). Schron ma sens tylko przy zagrozeniu
+# z powietrza (alarm / cwiczenia). Przy powodzi schron w piwnicy jest pulapka - ludzi wyprowadza sie poza strefe
+# zalewowa; z plonacego lasu - na punkt zbiorki poza lasem; przy pozarze budynku gapiow trzeba odsunac.
+KONTEKSTY = ("schron", "powodz", "pozar_las", "pozar_budynek", "patrol")
+
+_PROWADZENIE = {
+    "schron": "Wyślij drona z głośnikiem — zaprowadzi ludzi do najbliższego schronu.",
+    "powodz": "Wyślij drona z głośnikiem — wyprowadzi ludzi ze strefy zalewowej do bezpiecznego budynku.",
+    "pozar_las": "Wyślij drona z głośnikiem — wyprowadzi ludzi z lasu do punktu zbiórki.",
+}
+_ODSUNIECIE = {
+    "pozar_budynek": "Wyślij drona z głośnikiem — poprosi ludzi o odsunięcie się od budynku i zwolnienie dojazdu dla straży.",
+    "patrol": "Wyślij drona z głośnikiem — poprosi ludzi o opuszczenie niebezpiecznego miejsca.",
+}
 _AKCJE_DRONA = {
-    "prowadzenie": "Wyślij drona z głośnikiem — poprowadzi ludzi do najbliższego schronu",
-    "zrzut": "Wyślij drona z apteczką — zrzut zaopatrzenia medycznego",
-    "ostrzezenie": "Wyślij drona z głośnikiem — ostrzeże ludzi w rejonie",
-    "obserwacja": "Wyślij drona do obserwacji miejsca zdarzenia",
+    "uspokojenie": "Wyślij drona z głośnikiem — uspokoi tłum i wskaże bezpieczne wyjście.",
+    "zrzut": "Wyślij drona z apteczką — zrzuci zaopatrzenie medyczne, zanim dotrą służby.",
+    "ostrzezenie": "Wyślij drona z głośnikiem — ostrzeże ludzi i wezwie ich do opuszczenia rejonu.",
+    "obserwacja": "Wyślij drona — będzie obserwował miejsce zdarzenia do przyjazdu służb.",
+}
+_OBSERWACJA_WG_TYPU = {
+    "POZAR": "Wyślij drona z termowizją — będzie śledził rozwój pożaru i przekazywał obraz służbom.",
+    "ZATOR": "Wyślij drona — obraz z góry pomoże policji wyznaczyć objazd.",
 }
 
 
-def akcja_drona(typ, osoby):
+def akcja_drona(typ, osoby, kontekst="patrol"):
     """Co zrobi dron, jesli operator zdecyduje sie go wyslac. Zwraca (rodzaj, opis dla operatora)."""
     if typ in ("LUDZIE", "PANIKA") and osoby > 0:
-        rodzaj = "prowadzenie"
-    elif typ in ZAOPATRZENIE_WG_TYPU and osoby > 0:
-        rodzaj = "zrzut"
-    elif typ == "ZAGROZENIE":
-        rodzaj = "ostrzezenie"
-    else:
-        rodzaj = "obserwacja"
-    return rodzaj, _AKCJE_DRONA[rodzaj]
+        if kontekst in _PROWADZENIE:
+            return "prowadzenie", _PROWADZENIE[kontekst]
+        if typ == "PANIKA":
+            return "uspokojenie", _AKCJE_DRONA["uspokojenie"]
+        return "odsuniecie", _ODSUNIECIE.get(kontekst, _ODSUNIECIE["patrol"])
+    if typ in ZAOPATRZENIE_WG_TYPU and osoby > 0:
+        return "zrzut", _AKCJE_DRONA["zrzut"]
+    if typ == "ZAGROZENIE":
+        return "ostrzezenie", _AKCJE_DRONA["ostrzezenie"]
+    return "obserwacja", _OBSERWACJA_WG_TYPU.get(typ, _AKCJE_DRONA["obserwacja"])
 
 
 def posortuj_rekomendacje_wg_priorytetu(lista):

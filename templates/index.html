@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HERMES — Centrum Zarządzania Kryzysowego</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v={{ wersja }}">
 </head>
 <body data-orto-wmts="{{ orto_wmts }}" data-prg-wms="{{ prg_wms }}">
 
@@ -26,13 +27,7 @@
 <!-- ============================================================ NAWIGACJA -->
 <header class="nav karta">
   <div class="marka">
-    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-      <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-        <circle cx="7" cy="7" r="4"/><circle cx="25" cy="7" r="4"/><circle cx="7" cy="25" r="4"/><circle cx="25" cy="25" r="4"/>
-        <path d="M10 10l12 12M22 10 10 22"/>
-      </g>
-      <rect x="12.5" y="12.5" width="7" height="7" rx="2" fill="currentColor"/>
-    </svg>
+    <img class="logo" src="/static/hermes.png" alt="">
     <div>
       <div class="wordmark">HERMES</div>
       <div class="rozwiniecie">Hazard Evacuation, Response &amp; Mesh Embedded System</div>
@@ -42,8 +37,8 @@
   <nav class="pigulki" id="seg-scenariusz" role="group" aria-label="Scenariusz">
     <button data-scen="patrol" title="Klawisz 1"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 3.2 1.9 5 5 1.9-5 1.9-1.9 5-1.9-5-5-1.9 5-1.9z"/></svg>Patrol</button>
     <button data-scen="powodz" title="Klawisz 2"><svg viewBox="0 0 24 24"><path d="M2 17c2 0 2-1.5 4-1.5S8 17 10 17s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5V19c-2 0-2 1.5-4 1.5s-2-1.5-4-1.5-2 1.5-4 1.5-2-1.5-4-1.5-2 1.5-4 1.5zM12 3l7 6h-2v5H7V9H5z"/></svg>Powódź</button>
-    <button data-scen="pozar" title="Klawisz 3"><svg viewBox="0 0 24 24"><path d="M12 2c1 3.5-1.5 5-1.5 7.5 0 1.4 1 2.5 2.3 2.5 1.6 0 2.4-1.4 2.2-3 2.5 1.7 4 4.3 4 7 0 3.9-3.1 6-7 6s-7-2.6-7-6.3C5 11.8 10.5 8 12 2z"/></svg>Pożar lasu</button>
-    <button data-scen="alarm" title="Klawisz 4 — realne zagrożenie"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2 1 21h22zm0 5 7.5 12.5h-15zM11 10h2v5h-2zm0 6.5h2v2h-2z"/></svg>Alarm OC</button>
+    <button data-scen="pozar" title="Klawisz 3"><svg viewBox="0 0 24 24"><path d="M12 2c1 3.5-1.5 5-1.5 7.5 0 1.4 1 2.5 2.3 2.5 1.6 0 2.4-1.4 2.2-3 2.5 1.7 4 4.3 4 7 0 3.9-3.1 6-7 6s-7-2.6-7-6.3C5 11.8 10.5 8 12 2z"/></svg>Pożar</button>
+    <button data-scen="alarm" title="Klawisz 4 — realne zagrożenie"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2 1 21h22zm0 5 7.5 12.5h-15zM11 10h2v5h-2zm0 6.5h2v2h-2z"/></svg>Alarm RCB</button>
     <button data-scen="cwiczenia" title="Klawisz 5 — ćwiczenia"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v6h-2zm0 8h2v2h-2z"/></svg>Alarm próbny</button>
   </nav>
 
@@ -79,23 +74,21 @@
       <g id="kompas-strzalka"><path d="M60 14 66 30H54z"/></g></svg>
     <div class="kompas-srodek"><b id="kompas-st">—</b><span id="kompas-kier">WIATR</span><small id="kompas-kmh"></small></div>
   </div>
-  <div id="zgloszenie" class="zgloszenie" hidden></div>
-  <button id="zg-pigulka" class="zg-pigulka" hidden></button>
   <div id="toasty" aria-live="polite"></div>
 </main>
 
 <!-- ============================================================ PRAWY PANEL -->
 <aside class="prawa karta">
   <nav class="zakladki" role="tablist">
-    <button class="aktywna" data-tab="zdarzenia">Zdarzenia</button>
-    <button data-tab="incydenty">Zgłoszenia <span class="licznik" id="licznik-inc" hidden>0</span></button>
+    <button class="aktywna" data-tab="incydenty">Zgłoszenia <span class="licznik" id="licznik-inc" hidden>0</span></button>
+    <button data-tab="zdarzenia">Zdarzenia</button>
     <button data-tab="flota">Flota</button>
     <button data-tab="analiza">Analiza</button>
     <button data-tab="rodo">RODO</button>
     <button data-tab="dane">Dane</button>
   </nav>
 
-  <section class="tab widoczna" id="tab-zdarzenia">
+  <section class="tab" id="tab-zdarzenia">
     <div class="pasek-narzedzi">
       <div class="filtry" id="filtry">
         <button class="aktywny" data-f="wszystkie">Wszystkie</button>
@@ -113,7 +106,7 @@
     <ol class="feed" id="feed" data-filtr="wszystkie"></ol>
   </section>
 
-  <section class="tab" id="tab-incydenty">
+  <section class="tab widoczna" id="tab-incydenty">
     <p class="podpowiedz">Drony zgłaszają zdarzenia <b>operatorowi</b> — ze zdjęciem (twarze zanonimizowane) i współrzędnymi. Nic nie jest wysyłane automatycznie: operator decyduje, czy <b>wysłać drona</b>, <b>przekazać zgłoszenie służbom</b>, czy je <b>odrzucić</b>.</p>
     <div id="lista-inc" class="lista-inc"><p class="pusto">Brak zgłoszeń — rój patroluje.</p></div>
   </section>
@@ -128,7 +121,7 @@
   </section>
 
   <section class="tab" id="tab-analiza">
-    <p class="podpowiedz">Dane z testów BSP z udziałem mieszkańców: czy ludzie <b>posłuchali komunikatów</b> i <b>poszli za dronem do schronu</b>. Dane zostają między scenariuszami — uruchom „Alarm OC” i „Alarm próbny”, aby porównać realne zagrożenie z ćwiczeniami.</p>
+    <p class="podpowiedz">Dane z testów BSP z udziałem mieszkańców: czy ludzie <b>posłuchali komunikatów</b> i <b>poszli za dronem do schronu</b>. Dane zostają między scenariuszami — uruchom „Alarm RCB” i „Alarm próbny”, aby porównać realne zagrożenie z ćwiczeniami.</p>
     <div class="kafle kafle-4">
       <div class="kafel"><span>Ewakuacje grup</span><b id="an-ewak">0</b></div>
       <div class="kafel"><span>Podążyło</span><b id="an-podazanie">—</b></div>
@@ -211,7 +204,7 @@
       <div class="kafle kafle-3">
         <div class="kafel alarm"><div class="kafel-ik"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2 1 21h22zm0 5 7.5 12.5h-15zM11 10h2v5h-2zm0 6.5h2v2h-2z"/></svg></div><div><span>Do decyzji</span><b id="kpi-czeka">0</b></div></div>
         <div class="kafel"><div class="kafel-ik"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div><div><span>Zgłoszenia</span><b id="kpi-incydenty">0</b></div></div>
-        <div class="kafel"><div class="kafel-ik"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.5 8 11 4.6-1.5 8-6 8-11V5z"/></svg></div><div><span>W schronie</span><b id="kpi-schron">0</b></div></div>
+        <div class="kafel"><div class="kafel-ik"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.5 8 11 4.6-1.5 8-6 8-11V5z"/></svg></div><div title="Osoby doprowadzone przez drony w bezpieczne miejsce (schron, budynek poza strefą zalewową, punkt zbiórki)"><span>Ewakuowani</span><b id="kpi-schron">0</b></div></div>
         <div class="kafel"><div class="kafel-ik"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M9 3h6v3h5a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5zm2 2v1h2V5zm0 5v3H8v2h3v3h2v-3h3v-2h-3v-3z"/></svg></div><div><span>Apteczki</span><b id="kpi-zrzuty">0</b></div></div>
         <div class="kafel"><div class="kafel-ik"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><path d="M11.2 7.3 5.9 15.6l1.3.8 5.3-8.3zm1.6 0-1.3.8 5.3 8.3 1.3-.8zM7.6 17.3h8.8v1.5H7.6z"/></svg></div><div><span>Drony</span><b id="kpi-mesh">0/0</b></div></div>
         <div class="kafel"><div class="kafel-ik"><svg viewBox="0 0 24 24"><path d="M12 10 7 22h2l1-3h4l1 3h2zm-1.3 7L12 13l1.3 4zM12 6.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM7.8 3.8a6 6 0 0 0 0 8.4l1.1-1.1a4.4 4.4 0 0 1 0-6.2zm8.4 0-1.1 1.1a4.4 4.4 0 0 1 0 6.2l1.1 1.1a6 6 0 0 0 0-8.4z"/></svg></div><div><span>Stacje</span><b id="kpi-stacje">0/0</b></div></div>
@@ -249,20 +242,16 @@
         <label><input type="checkbox" id="w-prg"><i></i><span>Granice gmin</span><em>PRG</em></label>
         <div class="wiersz-baza"><span>Mapa bazowa</span>
           <div class="segment maly warstwy-bazowe" role="radiogroup" aria-label="Mapa bazowa">
-            <label><input type="radio" name="baza" value="orto" checked><span>Orto</span></label>
+            <label><input type="radio" name="baza" value="osm" checked><span>OSM</span></label>
+            <label><input type="radio" name="baza" value="orto"><span>Orto</span></label>
             <label><input type="radio" name="baza" value="ciemna"><span>Ciemna</span></label>
-            <label><input type="radio" name="baza" value="osm"><span>OSM</span></label>
           </div>
         </div>
       </div>
     </div>
 
-  </div>
-</section>
-
-<!-- ============================================================ PETLA INFORMACYJNA (tarcza) -->
-<section class="petla karta" aria-label="Pętla informacyjna HERMES">
-  <div class="karta-naglowek"><h2><span class="znak-info">i</span>Pętla informacyjna</h2></div>
+    <div class="blok-kolumna blok-petla" aria-label="Pętla informacyjna HERMES">
+  <h3 class="blok-tytul"><span class="znak-info">i</span>Pętla informacyjna</h3>
   <div class="petla-uklad">
     <div class="tarcza">
       <ol class="etapy" id="etapy">
@@ -290,8 +279,11 @@
       <div class="pakiet-lacze" id="petla-status"><i></i><span>Łączenie…</span></div>
     </div>
   </div>
+    </div>
+
+  </div>
 </section>
 
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v={{ wersja }}"></script>
 </body>
 </html>

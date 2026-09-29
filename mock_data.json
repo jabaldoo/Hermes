@@ -962,27 +962,28 @@
   "patrol": {
    "nazwa": "Patrol rutynowy",
    "rodzaj": "realne",
-   "opis": "Rój patroluje gminę. Edge AI wykrywa zdarzenia różnych typów — służby dostają alert do operatora ze zdjęciem i współrzędnymi — operator decyduje, czy wysłać drona.",
+   "opis": "Rój patroluje miasto. Edge AI na pokładzie wykrywa zdarzenia i wysyła operatorowi zgłoszenie ze zdjęciem i współrzędnymi. Operator decyduje, czy wysłać drona, czy przekazać sprawę służbom.",
    "pogoda": {
     "temperatura_c": 17.0,
     "wiatr_kmh": 12,
     "opad_mm_h": 0.0,
     "wilgotnosc_proc": 58,
-    "opis": "Umiarkowanie, bez opadów"
+    "opis": "Umiarkowana temperatura, bez opadów"
    },
    "warstwy": [],
-   "kroki": []
+   "kroki": [],
+   "godzina_startu": "10:00"
   },
   "powodz": {
    "nazwa": "Powódź — Odra, Wrocław",
    "rodzaj": "realne",
-   "opis": "IMGW ostrzega o przekroczeniu stanu alarmowego Odry. Rój rozpoznaje strefę zalewową, zgłasza zdarzenia operatorowi, który kieruje drony do prowadzenia mieszkańców do schronów.",
+   "opis": "IMGW ostrzega o przekroczeniu stanu alarmowego Odry. Rój rozpoznaje strefę zalewową i zgłasza zdarzenia operatorowi, który może wysłać drony, by wyprowadziły mieszkańców poza zasięg wody. W ulewie latają tylko drony w wersji deszczowej.",
    "pogoda": {
     "temperatura_c": 13.0,
     "wiatr_kmh": 38,
     "opad_mm_h": 21.0,
     "wilgotnosc_proc": 97,
-    "opis": "Ulewny deszcz — ostrzeżenie IMGW 3° (mock)"
+    "opis": "Ulewny deszcz — ostrzeżenie IMGW 3. stopnia (mock)"
    },
    "warstwy": [
     "odra",
@@ -998,7 +999,7 @@
     {
      "t": 20,
      "typ": "info",
-     "opis": "CZK aktywuje HERMES — start 4 BSP z bazy."
+     "opis": "CZK uruchamia HERMES — ze stacji startują drony w wersji deszczowej."
     },
     {
      "t": 30,
@@ -1073,93 +1074,437 @@
       "opis": "chaotyczny ruch tłumu przy zalanym przejściu"
      }
     }
-   ]
+   ],
+   "godzina_startu": "05:40"
   },
   "pozar": {
-   "nazwa": "Pożar lasu — Las Osobowicki",
+   "nazwa": "Pożar",
    "rodzaj": "realne",
-   "opis": "BDL wskazuje kompleks leśny o IV st. zagrożenia. Termowizja lokalizuje osoby uwięzione, na decyzję operatora drony zrzucają apteczki, dron-przekaźnik utrzymuje łączność mesh.",
+   "opis": "Losowany wariant pożaru: las, dom jednorodzinny, blok lub hala magazynowa.",
    "pogoda": {
     "temperatura_c": 33.0,
     "wiatr_kmh": 29,
     "opad_mm_h": 0.0,
     "wilgotnosc_proc": 17,
-    "opis": "Upał i susza — IV st. zagrożenia pożarowego (mock)"
+    "opis": "Upał i susza — IV stopień zagrożenia pożarowego (mock)"
    },
-   "warstwy": [
-    "las",
-    "ogniska"
-   ],
-   "kroki": [
-    {
-     "t": 0,
-     "typ": "alert",
-     "zrodlo": "BDL + CEMS (mock)",
-     "opis": "Las Osobowicki: zgłoszenie dymu (112), IV stopień zagrożenia pożarowego lasu."
+   "warstwy": [],
+   "kroki": [],
+   "warianty": {
+    "las": {
+     "nazwa": "Pożar lasu — Las Osobowicki",
+     "opis": "BDL wskazuje kompleks leśny o IV stopniu zagrożenia pożarowego. Nad las lecą dwa drony: jeden szuka termowizją uwięzionych osób, drugi utrzymuje łączność mesh. Na decyzję operatora kolejne drony zrzucają apteczki i wyprowadzają ludzi z lasu.",
+     "pogoda": {
+      "temperatura_c": 33.0,
+      "wiatr_kmh": 29,
+      "opad_mm_h": 0.0,
+      "wilgotnosc_proc": 17,
+      "opis": "Upał i susza — IV stopień zagrożenia pożarowego (mock)"
+     },
+     "warstwy": [
+      "las",
+      "ogniska"
+     ],
+     "ogniska": [
+      [
+       51.141,
+       16.975,
+       320
+      ],
+      [
+       51.143,
+       17.012,
+       320
+      ]
+     ],
+     "obszar": {
+      "lat": 51.136,
+      "lon": 16.99,
+      "r_km": 1.4,
+      "drony": 2
+     },
+     "tresc_komunikatu": "Uwaga! Pożar lasu. Natychmiast opuść las najbliższą drogą i oddalaj się od dymu.",
+     "prefiks": "Pożar lasu. ",
+     "kroki": [
+      {
+       "t": 0,
+       "typ": "alert",
+       "zrodlo": "BDL + CEMS (mock)",
+       "opis": "Las Osobowicki: zgłoszenie dymu pod numer 112, IV stopień zagrożenia pożarowego lasu."
+      },
+      {
+       "t": 20,
+       "typ": "info",
+       "opis": "CZK uruchamia HERMES — nad Las Osobowicki lecą 2 BSP (jeden jako przekaźnik mesh), reszta roju patroluje miasto."
+      },
+      {
+       "t": 30,
+       "typ": "zadanie",
+       "sektor": "B4",
+       "komunikat": true,
+       "przekaznik": true
+      },
+      {
+       "t": 30,
+       "typ": "zadanie",
+       "sektor": "A5",
+       "wykrycie": {
+        "typ": "POMOC",
+        "osoby": 3,
+        "opis": "3 sygnatury cieplne w strefie ognia — osoby uwięzione"
+       }
+      },
+      {
+       "t": 30,
+       "typ": "zadanie",
+       "sektor": "B5",
+       "wykrycie": {
+        "typ": "POMOC",
+        "osoby": 2,
+        "opis": "2 osoby odcięte przez ogień na leśnej drodze"
+       }
+      },
+      {
+       "t": 40,
+       "typ": "zadanie",
+       "sektor": "A4",
+       "wykrycie": {
+        "typ": "LUDZIE",
+        "osoby": 7,
+        "opis": "grupa spacerowiczów na skraju lasu"
+       }
+      },
+      {
+       "t": 120,
+       "typ": "zadanie",
+       "sektor": "B5",
+       "wykrycie": {
+        "typ": "POZAR",
+        "osoby": 0,
+        "opis": "front ognia przesuwa się na wschód"
+       }
+      }
+     ],
+     "godzina_startu": "14:20"
     },
-    {
-     "t": 20,
-     "typ": "info",
-     "opis": "CZK aktywuje HERMES — start roju, TALARIA jako przekaźnik mesh."
+    "dom": {
+     "nazwa": "Pożar domu — Sępolno",
+     "opis": "Zgłoszenie 112: pożar domu jednorodzinnego na Sępolnie. Najbliższy dron z termowizją szuka osób w budynku, ostrzega sąsiadów i pilnuje dojazdu dla PSP. O każdym działaniu decyduje operator.",
+     "pogoda": {
+      "temperatura_c": 9.0,
+      "wiatr_kmh": 24,
+      "opad_mm_h": 0.0,
+      "wilgotnosc_proc": 62,
+      "opis": "Chłodno, porywisty wiatr — dym niesiony na wschód"
+     },
+     "warstwy": [
+      "ogniska"
+     ],
+     "ogniska": [
+      [
+       51.1036,
+       17.0836,
+       60
+      ]
+     ],
+     "obszar": {
+      "lat": 51.1036,
+      "lon": 17.0836,
+      "r_km": 0.8,
+      "drony": 1
+     },
+     "tresc_komunikatu": "Uwaga! W pobliżu pali się budynek. Zamknij okna, nie zbliżaj się i zostaw wolny przejazd dla straży pożarnej.",
+     "prefiks": "Pożar budynku. ",
+     "kroki": [
+      {
+       "t": 0,
+       "typ": "alert",
+       "zrodlo": "112 / PSP (mock)",
+       "opis": "Sępolno: pożar domu jednorodzinnego, silne zadymienie sąsiednich posesji."
+      },
+      {
+       "t": 15,
+       "typ": "info",
+       "opis": "CZK uruchamia HERMES — nad Sępolno leci najbliższy BSP z termowizją, reszta roju patroluje miasto."
+      },
+      {
+       "t": 25,
+       "typ": "zadanie",
+       "punkt": [
+        51.1036,
+        17.0836
+       ],
+       "wykrycie": {
+        "typ": "POZAR",
+        "osoby": 0,
+        "opis": "ogień na poddaszu, dym przechodzi na sąsiedni dom"
+       }
+      },
+      {
+       "t": 25,
+       "typ": "zadanie",
+       "punkt": [
+        51.1046,
+        17.0808
+       ],
+       "wykrycie": {
+        "typ": "POMOC",
+        "osoby": 1,
+        "opis": "sygnatura cieplna w oknie na piętrze — osoba odcięta od schodów"
+       }
+      },
+      {
+       "t": 45,
+       "typ": "zadanie",
+       "punkt": [
+        51.1024,
+        17.0871
+       ],
+       "wykrycie": {
+        "typ": "LUDZIE",
+        "osoby": 9,
+        "opis": "sąsiedzi i gapie na jezdni przy płonącym domu"
+       }
+      },
+      {
+       "t": 60,
+       "typ": "zadanie",
+       "punkt": [
+        51.1031,
+        17.0852
+       ],
+       "komunikat": true
+      },
+      {
+       "t": 120,
+       "typ": "zadanie",
+       "punkt": [
+        51.1052,
+        17.0874
+       ],
+       "wykrycie": {
+        "typ": "ZATOR",
+        "osoby": 0,
+        "opis": "zaparkowane auta blokują dojazd wozów PSP"
+       }
+      }
+     ],
+     "godzina_startu": "18:45"
     },
-    {
-     "t": 30,
-     "typ": "zadanie",
-     "dron": "D1",
-     "sektor": "B4",
-     "komunikat": true,
-     "przekaznik": true
+    "blok": {
+     "nazwa": "Pożar bloku — Gaj",
+     "opis": "Pożar mieszkania na wyższym piętrze bloku na Gaju. Dron szuka osób na balkonach. Na decyzję operatora kolejne BSP zrzucają apteczki i odsuwają zebranych mieszkańców od budynku.",
+     "pogoda": {
+      "temperatura_c": 9.0,
+      "wiatr_kmh": 24,
+      "opad_mm_h": 0.0,
+      "wilgotnosc_proc": 62,
+      "opis": "Chłodno, porywisty wiatr — dym niesiony na wschód"
+     },
+     "warstwy": [
+      "ogniska"
+     ],
+     "ogniska": [
+      [
+       51.0768,
+       17.0372,
+       70
+      ]
+     ],
+     "obszar": {
+      "lat": 51.0768,
+      "lon": 17.0372,
+      "r_km": 0.8,
+      "drony": 1
+     },
+     "tresc_komunikatu": "Uwaga! W pobliżu pali się budynek. Zamknij okna, nie zbliżaj się i zostaw wolny przejazd dla straży pożarnej.",
+     "prefiks": "Pożar budynku. ",
+     "kroki": [
+      {
+       "t": 0,
+       "typ": "alert",
+       "zrodlo": "112 / PSP (mock)",
+       "opis": "Gaj: pożar mieszkania na 8. piętrze, zadymiona klatka schodowa, trwa ewakuacja bloku."
+      },
+      {
+       "t": 15,
+       "typ": "info",
+       "opis": "CZK uruchamia HERMES — nad Gaj leci najbliższy BSP z termowizją, reszta roju patroluje miasto."
+      },
+      {
+       "t": 25,
+       "typ": "zadanie",
+       "punkt": [
+        51.0768,
+        17.0372
+       ],
+       "wykrycie": {
+        "typ": "POMOC",
+        "osoby": 2,
+        "opis": "2 osoby na balkonie nad źródłem ognia"
+       }
+      },
+      {
+       "t": 25,
+       "typ": "zadanie",
+       "punkt": [
+        51.0781,
+        17.0351
+       ],
+       "wykrycie": {
+        "typ": "LUDZIE",
+        "osoby": 14,
+        "opis": "mieszkańcy zebrani na parkingu przed blokiem, w zasięgu dymu"
+       }
+      },
+      {
+       "t": 50,
+       "typ": "zadanie",
+       "punkt": [
+        51.0756,
+        17.0394
+       ],
+       "wykrycie": {
+        "typ": "PANIKA",
+        "osoby": 12,
+        "opis": "tłum przy wejściu do sąsiedniej klatki — chaotyczny ruch"
+       }
+      },
+      {
+       "t": 60,
+       "typ": "zadanie",
+       "punkt": [
+        51.0772,
+        17.036
+       ],
+       "komunikat": true
+      },
+      {
+       "t": 130,
+       "typ": "zadanie",
+       "punkt": [
+        51.0768,
+        17.0372
+       ],
+       "wykrycie": {
+        "typ": "POZAR",
+        "osoby": 0,
+        "opis": "ogień przenosi się na wyższe kondygnacje"
+       }
+      }
+     ],
+     "godzina_startu": "21:10"
     },
-    {
-     "t": 30,
-     "typ": "zadanie",
-     "dron": "D3",
-     "sektor": "A5",
-     "wykrycie": {
-      "typ": "POMOC",
-      "osoby": 3,
-      "opis": "3 sygnatury cieplne w strefie ognia — osoby uwięzione"
-     }
-    },
-    {
-     "t": 30,
-     "typ": "zadanie",
-     "dron": "D2",
-     "sektor": "B5",
-     "wykrycie": {
-      "typ": "POMOC",
-      "osoby": 2,
-      "opis": "2 osoby odcięte przez ogień na leśnej drodze"
-     }
-    },
-    {
-     "t": 40,
-     "typ": "zadanie",
-     "dron": "D4",
-     "sektor": "A4",
-     "wykrycie": {
-      "typ": "LUDZIE",
-      "osoby": 7,
-      "opis": "grupa spacerowiczów na skraju lasu"
-     }
-    },
-    {
-     "t": 120,
-     "typ": "zadanie",
-     "dron": "D2",
-     "sektor": "B5",
-     "wykrycie": {
-      "typ": "POZAR",
-      "osoby": 0,
-      "opis": "front ognia przesuwa się na wschód"
-     }
+    "magazyn": {
+     "nazwa": "Pożar hali — Port Miejski",
+     "opis": "Pożar hali magazynowej przy Porcie Miejskim, możliwe substancje niebezpieczne. Dron wyznacza strefę zagrożenia, szuka poszkodowanych i ostrzega pracowników sąsiednich firm.",
+     "pogoda": {
+      "temperatura_c": 9.0,
+      "wiatr_kmh": 24,
+      "opad_mm_h": 0.0,
+      "wilgotnosc_proc": 62,
+      "opis": "Chłodno, porywisty wiatr — dym niesiony na wschód"
+     },
+     "warstwy": [
+      "ogniska"
+     ],
+     "ogniska": [
+      [
+       51.1262,
+       17.0168,
+       110
+      ]
+     ],
+     "obszar": {
+      "lat": 51.1262,
+      "lon": 17.0168,
+      "r_km": 1.0,
+      "drony": 1
+     },
+     "tresc_komunikatu": "Uwaga! Pali się hala z substancjami niebezpiecznymi. Opuść rejon, a jeśli jesteś w budynku, zamknij okna i nie wdychaj dymu.",
+     "prefiks": "Pożar i zagrożenie chemiczne. ",
+     "kroki": [
+      {
+       "t": 0,
+       "typ": "alert",
+       "zrodlo": "112 / PSP + WIOŚ (mock)",
+       "opis": "Port Miejski: pożar hali magazynowej, możliwe materiały łatwopalne i chemiczne."
+      },
+      {
+       "t": 15,
+       "typ": "info",
+       "opis": "CZK uruchamia HERMES — nad Port Miejski leci najbliższy BSP z termowizją, reszta roju patroluje miasto."
+      },
+      {
+       "t": 25,
+       "typ": "zadanie",
+       "punkt": [
+        51.1262,
+        17.0168
+       ],
+       "wykrycie": {
+        "typ": "ZAGROZENIE",
+        "osoby": 0,
+        "opis": "beczki z substancją chemiczną przy płonącej hali — ryzyko wybuchu"
+       }
+      },
+      {
+       "t": 25,
+       "typ": "zadanie",
+       "punkt": [
+        51.1275,
+        17.0139
+       ],
+       "wykrycie": {
+        "typ": "POMOC",
+        "osoby": 1,
+        "opis": "pracownik z poparzeniami przy rampie załadunkowej"
+       }
+      },
+      {
+       "t": 45,
+       "typ": "zadanie",
+       "punkt": [
+        51.1248,
+        17.0195
+       ],
+       "wykrycie": {
+        "typ": "LUDZIE",
+        "osoby": 8,
+        "opis": "pracownicy sąsiednich firm na placu, w zasięgu dymu"
+       }
+      },
+      {
+       "t": 60,
+       "typ": "zadanie",
+       "punkt": [
+        51.1256,
+        17.0181
+       ],
+       "komunikat": true
+      },
+      {
+       "t": 120,
+       "typ": "zadanie",
+       "punkt": [
+        51.1288,
+        17.021
+       ],
+       "wykrycie": {
+        "typ": "ZATOR",
+        "osoby": 0,
+        "opis": "dym ogranicza widoczność — ruch na ulicy wstrzymany"
+       }
+      }
+     ],
+     "godzina_startu": "07:50"
     }
-   ]
+   }
   },
   "alarm": {
-   "nazwa": "Alarm powietrzny (OC)",
+   "nazwa": "Alarm powietrzny (RCB)",
    "rodzaj": "realne",
-   "opis": "Ogłoszono alarm powietrzny. Drony z głośnikami nadają komunikat, wyszukują grupy i osoby w panice i prowadzą je do najbliższych schronów KG PSP.",
+   "opis": "Rządowe Centrum Bezpieczeństwa ogłasza alarm powietrzny. Drony z głośnikami nadają komunikat, szukają grup i osób w panice i prowadzą je do najbliższych schronów z listy KG PSP.",
    "pogoda": {
     "temperatura_c": 16.0,
     "wiatr_kmh": 9,
@@ -1172,8 +1517,8 @@
     {
      "t": 0,
      "typ": "alert",
-     "zrodlo": "RCB / Szef OC gminy (symulacja)",
-     "opis": "ALARM POWIETRZNY — zagrożenie z powietrza. Ludność kieruje się do schronów."
+     "zrodlo": "Alert RCB (symulacja)",
+     "opis": "ALARM POWIETRZNY — zagrożenie z powietrza. Mieszkańcy kierują się do schronów."
     },
     {
      "t": 10,
@@ -1221,7 +1566,7 @@
      "wykrycie": {
       "typ": "POMOC",
       "osoby": 1,
-      "opis": "osoba z urazem nogi, nie może iść do schronu"
+      "opis": "osoba z urazem nogi, która nie może dojść do schronu"
      }
     },
     {
@@ -1229,12 +1574,13 @@
      "typ": "alarm",
      "tresc": "Uwaga! Alarm powietrzny trwa. Pozostań w schronie do odwołania alarmu."
     }
-   ]
+   ],
+   "godzina_startu": "22:15"
   },
   "cwiczenia": {
    "nazwa": "Alarm próbny — ćwiczenia OC",
    "rodzaj": "ćwiczenie",
-   "opis": "Zapowiedziany alarm próbny. Te same procedury co przy realnym zagrożeniu — HERMES zbiera dane, ilu mieszkańców posłuchało dronów i doszło do schronu.",
+   "opis": "Zapowiedziany alarm próbny. Obowiązują te same procedury co przy realnym zagrożeniu — HERMES zbiera dane o tym, ilu mieszkańców posłuchało dronów i doszło do schronu.",
    "pogoda": {
     "temperatura_c": 19.0,
     "wiatr_kmh": 7,
@@ -1252,7 +1598,7 @@
     {
      "t": 10,
      "typ": "alarm",
-     "tresc": "Uwaga! To jest alarm próbny w ramach ćwiczeń obrony cywilnej. Prosimy udać się do najbliższego schronu."
+     "tresc": "Uwaga! To jest alarm próbny w ramach ćwiczeń obrony cywilnej. Proszę udać się do najbliższego schronu."
     },
     {
      "t": 20,
@@ -1298,7 +1644,8 @@
       "opis": "osoby przy szkole"
      }
     }
-   ]
+   ],
+   "godzina_startu": "12:00"
   }
  }
 }

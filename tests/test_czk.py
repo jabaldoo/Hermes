@@ -25,12 +25,26 @@ def test_pomoc_alarmuje_pogotowie():
 
 
 def test_akcja_drona_zalecana_operatorowi():
-    assert akcja_drona("LUDZIE", 8)[0] == "prowadzenie"
-    assert akcja_drona("PANIKA", 20)[0] == "prowadzenie"
     assert akcja_drona("POMOC", 2)[0] == "zrzut"
     assert akcja_drona("POZAR", 0)[0] == "obserwacja"
     assert akcja_drona("ZAGROZENIE", 0)[0] == "ostrzezenie"
     assert akcja_drona("ZATOR", 0)[0] == "obserwacja"
+
+
+def test_schron_proponowany_tylko_przy_alarmie():
+    # alarm / cwiczenia: prowadzenie do schronu
+    rodzaj, opis = akcja_drona("LUDZIE", 8, "schron")
+    assert rodzaj == "prowadzenie" and "schronu" in opis
+    assert akcja_drona("PANIKA", 20, "schron")[0] == "prowadzenie"
+    # powodz i pozar lasu: prowadzenie, ale nie do schronu
+    for kontekst in ("powodz", "pozar_las"):
+        rodzaj, opis = akcja_drona("LUDZIE", 8, kontekst)
+        assert rodzaj == "prowadzenie" and "schron" not in opis
+    # pozar budynku i patrol: bez prowadzenia - odsuniecie ludzi / uspokojenie tlumu
+    assert akcja_drona("LUDZIE", 9, "pozar_budynek")[0] == "odsuniecie"
+    assert akcja_drona("PANIKA", 12, "pozar_budynek")[0] == "uspokojenie"
+    assert akcja_drona("LUDZIE", 5, "patrol")[0] == "odsuniecie"
+    assert akcja_drona("PANIKA", 15, "patrol")[0] == "uspokojenie"
 
 
 def test_status_sektora_to_najpilniejszy_incydent():

@@ -1,15 +1,19 @@
 # main.py - HERMES: Hazard Evacuation, Response and Mesh Embedded System
 # Demonstrator PoC. Start: python -m uvicorn main:app --reload
-# Zero Dockera - FastAPI + SQLite + asyncio + WebSocket, frontend bez build-stepu.
 import asyncio
 import base64
 import csv
 import io
 import json
 import os
+import random
+import threading
+from collections import OrderedDict
 from contextlib import asynccontextmanager
+from typing import Optional
 
 import cv2
+import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
@@ -80,11 +84,49 @@ async def favicon():
     return Response(status_code=204)
 
 
+_STYLE_CARTO = {"dark_only_labels", "dark_all"}
+_kafle_cache: "OrderedDict[tuple, bytes]" = OrderedDict()
+_kafle_blokada = threading.Lock()
+_sesja_carto = requests.Session()
+
+
+@app.get("/kafle/carto/{styl}/{z}/{x}/{y}.png", include_in_schema=False)
+def kafel_carto(styl: str, z: int, x: int, y: int):
+    """Proxy kafli CARTO: klucz API zostaje na serwerze (plik .env) i nigdy nie trafia do przegladarki."""
+    if styl not in _STYLE_CARTO or not 0 <= z <= 20 or not 0 <= x < 2 ** z or not 0 <= y < 2 ** z:
+        raise HTTPException(404, "Nieznany kafel")
+    klucz = os.environ.get("CARTO_API_KEY", "")
+    if not klucz:
+        return Response(status_code=204)
+    k = (styl, z, x, y)
+    with _kafle_blokada:
+        dane = _kafle_cache.get(k)
+        if dane is not None:
+            _kafle_cache.move_to_end(k)
+    if dane is None:
+        try:
+            r = _sesja_carto.get(f"https://a.basemaps.cartocdn.com/{styl}/{z}/{x}/{y}.png",
+                                 params={"key": klucz}, timeout=(3, 10))
+        except requests.RequestException:
+            return Response(status_code=204)
+        if r.status_code != 200:
+            return Response(status_code=204)
+        dane = r.content
+        with _kafle_blokada:
+            _kafle_cache[k] = dane
+            if len(_kafle_cache) > 3000:
+                _kafle_cache.popitem(last=False)
+    return Response(dane, media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/", response_class=HTMLResponse)
 async def strona_glowna(request: Request):
+    # wersja = czas modyfikacji plikow - przegladarka nie trzyma starego app.js/style.css po zmianach
+    wersja = int(max(os.path.getmtime(os.path.join(TUTAJ, "static", p)) for p in ("app.js", "style.css")))
     return templates.TemplateResponse(request, "index.html", {
         "orto_wmts": data_sources.GEOPORTAL_ORTO_WMTS,
         "prg_wms": data_sources.GEOPORTAL_PRG_WMS,
+        "wersja": wersja,
     })
 
 
@@ -110,13 +152,13 @@ async def api_stan():
 
 
 @app.post("/api/sym/scenariusz/{klucz}")
-async def api_scenariusz(klucz: str):
+async def api_scenariusz(klucz: str, wariant: Optional[str] = None):
     if klucz not in _sym().mock["scenariusze"]:
         raise HTTPException(404, "Nieznany scenariusz")
-    _sym().uruchom_scenariusz(klucz)
+    _sym().uruchom_scenariusz(klucz, wariant)  # bez ?wariant= - losowy wariant (np. rodzaj pozaru)
     _sym().pauza = False
     await _sym().wyslij()
-    return {"scenariusz": klucz}
+    return {"scenariusz": klucz, "wariant": _sym().wariant}
 
 
 @app.post("/api/sym/pauza")
@@ -151,6 +193,8 @@ async def api_glos(dron_id: str):
         raise HTTPException(404, "Dron niedostepny")
     if d["tryb"] != "aktywny":
         raise HTTPException(400, "Dron pasywny nie ma glosnika")
+    if d["faza"] == "uziemiony":
+        raise HTTPException(400, "Dron uziemiony przez opad")
     _sym().komunikat_reczny(dron_id)
     await _sym().wyslij()
     return {"dron": dron_id}
@@ -283,27 +327,50 @@ async def api_statystyki():
 
 # ---------------------------------------------------------------- anonimizacja - RODO by design
 
-@app.get("/api/anonimizacja/demo")
-def api_anonimizacja_demo(tryb: str | None = None):
-    """
-    Uruchamia prawdziwy pipeline edge AI (HOG + Haar + anonimizacja) na klatce testowej
-    samples/test_face.jpg. Oryginal jest zwracany WYLACZNIE do porownania w panelu demo -
-    w systemie operacyjnym oryginalna klatka nigdy nie opuszcza pokladu drona.
-    """
-    sciezka = os.path.join(TUTAJ, "samples", "test_face.jpg")
-    klatka = cv2.imread(sciezka)
-    if klatka is None:
-        return JSONResponse({"blad": "Brak lub uszkodzony plik samples/test_face.jpg"}, status_code=404)
+_KATALOG_PROBEK = os.path.join(TUTAJ, "samples")
+_MAKS_BOK_PROBKI = 960  # duze zdjecia zmniejszamy - detekcja i tak dziala na mniejszej klatce
+_anon_cache: dict = {}
 
+
+def _probki():
+    """Klatki testowe do panelu RODO: wszystkie obrazy z katalogu samples/."""
+    return sorted(p for p in os.listdir(_KATALOG_PROBEK) if p.lower().endswith((".jpg", ".jpeg", ".png")))
+
+
+@app.get("/api/anonimizacja/demo")
+def api_anonimizacja_demo(tryb: str | None = None, plik: str | None = None):
+    """
+    Uruchamia prawdziwy pipeline edge AI (HOG + Haar + anonimizacja) na klatce testowej z samples/
+    (wskazanej parametrem `plik` albo losowej). Oryginal jest zwracany WYLACZNIE do porownania w panelu
+    demo - w systemie operacyjnym oryginalna klatka nigdy nie opuszcza pokladu drona.
+    """
+    probki = _probki()
+    if not probki:
+        return JSONResponse({"blad": "Brak klatek testowych w katalogu samples/"}, status_code=404)
+    plik = plik if plik in probki else random.choice(probki)  # tylko pliki z listy - bez dowolnych sciezek
     tryb = tryb if tryb in TRYBY_DOZWOLONE else wczytaj_tryb_z_env()
-    metadane, zanonimizowana = przetworz_klatke_na_pokladzie(klatka, tryb_anonimizacji=tryb)
+    sciezka = os.path.join(_KATALOG_PROBEK, plik)
+    # wynik pipeline'u dla danej klatki i trybu sie nie zmienia - liczymy raz (HOG na duzej klatce trwa ~1,5 s)
+    klucz = (plik, tryb, os.path.getmtime(sciezka))
+    if klucz not in _anon_cache:
+        klatka = cv2.imread(sciezka)
+        if klatka is None:
+            return JSONResponse({"blad": f"Uszkodzony plik samples/{plik}"}, status_code=404)
+        skala = _MAKS_BOK_PROBKI / max(klatka.shape[:2])
+        if skala < 1:
+            klatka = cv2.resize(klatka, None, fx=skala, fy=skala, interpolation=cv2.INTER_AREA)
+        metadane, zanonimizowana = przetworz_klatke_na_pokladzie(klatka, tryb_anonimizacji=tryb)
+        _anon_cache[klucz] = (metadane, base64.b64encode(klatka_na_jpeg_bytes(klatka)).decode("ascii"),
+                              base64.b64encode(klatka_na_jpeg_bytes(zanonimizowana)).decode("ascii"))
+    metadane, oryginal_b64, zanonimizowany_b64 = _anon_cache[klucz]
     osoby = max(metadane["liczba_osob"], metadane["liczba_zanonimizowanych_twarzy"])
 
     return {
+        "plik": plik, "probki": probki,
         "tryb_anonimizacji": tryb,
         "liczba_wykrytych_twarzy": metadane["liczba_zanonimizowanych_twarzy"],
-        "oryginal_base64": base64.b64encode(klatka_na_jpeg_bytes(klatka)).decode("ascii"),
-        "zanonimizowany_base64": base64.b64encode(klatka_na_jpeg_bytes(zanonimizowana)).decode("ascii"),
+        "oryginal_base64": oryginal_b64,
+        "zanonimizowany_base64": zanonimizowany_b64,
         "pakiet_do_czk": {"sektor": "DEMO", "status": "LUDZIE" if osoby else "OK",
                           "pewnosc": metadane["pewnosc"], "ts": db.teraz_iso(), "liczba_osob": osoby},
     }
@@ -342,13 +409,14 @@ async def api_warstwy():
         stacja = min(stacje, key=lambda s: czk_logic.odleglosc_km(o["centrum"][0], o["centrum"][1], s["lat"], s["lon"]))
         osiedla.append({"nazwa": o["nazwa"], "polygon": o["polygon"], "stacja": stacja["id"]})
     strefy = data_sources.pobierz_strefy_wojskowe()
+    odra = data_sources.pobierz_odre()
     return {
         "sektory": m["sektory"],
         "baza": m["baza"],
         "stacje": stacje,
         "osiedla": osiedla,
-        "odra": m["hydrografia_mock"]["odra"],
-        "strefa_zalewowa": m["hydrografia_mock"]["strefa_zalewowa"],
+        "odra": odra["linie"] if odra else [m["hydrografia_mock"]["odra"]],
+        "strefa_zalewowa": odra["strefa_zalewowa"] if odra else m["hydrografia_mock"]["strefa_zalewowa"],
         "las": m["lasy_bdl_mock"]["las"],
         "ogniska": m["lasy_bdl_mock"]["ogniska"],
         "strefy_zakazane": strefy["strefy"],

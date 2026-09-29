@@ -1,0 +1,8 @@
+# sekrety i konfiguracja lokalna
+.env
+
+# srodowisko i artefakty
+.venv/
+__pycache__/
+.pytest_cache/
+*.db

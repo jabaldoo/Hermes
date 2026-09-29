@@ -72,7 +72,7 @@ def test_operator_wysyla_drona_prowadzenie_do_schronu(sym):
 
 
 def test_operator_wysyla_drona_z_apteczka(sym):
-    sym.uruchom_scenariusz("pozar")
+    sym.uruchom_scenariusz("pozar", "las")
     _ticki(sym, 150, _operator_wysyla_drony(sym))
     pomoc = [i for i in sym.incydenty.values() if i["typ"] == "POMOC"]
     assert len(pomoc) == 2 and all(i["zrzut"] for i in pomoc)
@@ -121,6 +121,48 @@ def test_drony_nigdy_nie_wlatuja_w_strefe_wojskowa(sym):
     assert not naruszenia
 
 
+@pytest.mark.parametrize("wariant", ["las", "dom", "blok", "magazyn"])
+def test_warianty_pozaru_patrol_rejonu_i_zgloszenia(sym, wariant):
+    sym.uruchom_scenariusz("pozar", wariant)
+    o = sym.obszar
+    rejon = [d for d in sym.drony.values() if d["obszar"]]
+    assert sym.wariant == wariant and 1 <= len(rejon) == o["drony"] <= 2
+    # zadania scenariusza dostaje tylko grupa rejonu - pozostale drony dalej patroluja miasto
+    assert {k["dron"] for k in sym.kroki if k["typ"] == "zadanie"} <= {d["id"] for d in rejon}
+    _ticki(sym, 160)
+    assert all(d["faza"] == "patrol" or d["faza"] in ("rtb", "ladowanie") for d in sym.drony.values() if not d["obszar"])
+    assert sym.incydenty, "wariant nie wygenerowal zgloszen"
+    for d in rejon:
+        if d["faza"] == "patrol":
+            assert simulator._km((d["lat"], d["lon"]), (o["lat"], o["lon"])) < o["r_km"] + 2.5
+    stan = sym.stan()["scenariusz"]
+    assert stan["wariant"] == wariant and stan["ogniska"]
+
+
+def test_powodz_prowadzi_poza_strefe_zalewowa_a_nie_do_schronu(sym):
+    sym.uruchom_scenariusz("powodz")
+    _ticki(sym, 400, _operator_wysyla_drony(sym))
+    prowadzone = [i for i in sym.incydenty.values() if i["rodzaj_akcji"] == "prowadzenie" and i["schron"]]
+    assert prowadzone
+    for i in prowadzone:
+        cel = i["schron"]
+        assert cel["do"] != "do schronu"
+        assert not simulator._w_wielokacie(simulator._xy((cel["lat"], cel["lon"])), sym.zalew_xy)
+
+
+def test_deszcz_uziemia_czesc_floty_reszta_w_wersji_deszczowej(sym):
+    sym.uruchom_scenariusz("powodz")  # 21 mm/h
+    uziemione = [d for d in sym.drony.values() if d["faza"] == "uziemiony"]
+    lecace = [d for d in sym.drony.values() if d["faza"] != "uziemiony"]
+    assert uziemione and 4 <= len(lecace) < len(sym.drony)
+    assert all(d["odporny"] for d in lecace) and not any(d["odporny"] for d in uziemione)
+    pozycje = {d["id"]: (d["lat"], d["lon"]) for d in uziemione}
+    _ticki(sym, 60, _operator_wysyla_drony(sym))
+    assert all((d["lat"], d["lon"]) == pozycje[d["id"]] and d["faza"] == "uziemiony" for d in uziemione)
+    sym.uruchom_scenariusz("patrol")  # bez opadu - lata cala flota w wersji standardowej
+    assert not any(d["faza"] == "uziemiony" or d["odporny"] for d in sym.drony.values())
+
+
 def test_planer_omija_wielokat():
     s = simulator.Symulator.__new__(simulator.Symulator)
     kwadrat = [(51.10, 17.00), (51.10, 17.02), (51.11, 17.02), (51.11, 17.00)]
@@ -145,10 +187,11 @@ def test_stacje_przekaznikowe_sa_wezlami_mesh(sym):
 
 
 def test_utrata_przekaznika_samonaprawa_mesh(sym):
-    sym.uruchom_scenariusz("pozar")
+    sym.uruchom_scenariusz("pozar", "las")
     _ticki(sym, 60)
-    assert sym.drony["D1"]["faza"] == "przekaznik"
-    sym.przelacz_wezel("D1")
+    przekaznik = [d["id"] for d in sym.drony.values() if d["faza"] == "przekaznik"]
+    assert len(przekaznik) == 1
+    sym.przelacz_wezel(przekaznik[0])
     _ticki(sym, 70)
     assert [d for d in sym.drony.values() if d["zywy"] and d["faza"] == "przekaznik"]
     for d in sym.drony.values():

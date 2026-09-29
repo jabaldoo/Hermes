@@ -65,8 +65,27 @@ OPIS_FAZY = {
     "patrol": "Patrol regionu — szuka osób w panice i zagrożeń",
     "rtb": "Powrót na stację (bateria)", "ladowanie": "Wymiana baterii i uzupełnienie apteczki",
     "utracony": "UTRACONY — brak telemetrii", "wezwanie": "Wzywa grupę przez głośnik ({s})",
-    "prowadzi": "Prowadzi grupę do schronu", "obserwuje": "Na miejscu zdarzenia ({s})",
+    "prowadzi": "Prowadzi grupę w bezpieczne miejsce", "obserwuje": "Na miejscu zdarzenia ({s})",
+    "uziemiony": "Uziemiony na stacji — opad powyżej limitu IP43",
 }
+
+# Flota a pogoda: standardowe BSP (IP43) lataja najwyzej w lekkim deszczu. Przy mocniejszym opadzie startuja
+# tylko drony w wersji deszczowej (IP55, mocniejsze silniki) - jest ich mniej, reszta zostaje na stacjach.
+LIMIT_OPADU_STD_MM_H = 4.0
+SILNY_OPAD_MM_H = 12.0
+SPEC_STD = "IP43 · deszcz do 4 mm/h · wiatr do 36 km/h"
+SPEC_DESZCZ = "IP55 · deszcz do 25 mm/h · wiatr do 54 km/h"
+
+# Komunikaty z glosnika, gdy dron nie prowadzi ludzi, tylko dziala na miejscu zdarzenia
+KOMUNIKAT_ODSUNIECIA = {
+    "pozar_budynek": "Uwaga! Trwa akcja gaśnicza. Odsuń się od budynku na co najmniej 100 metrów "
+                     "i zostaw wolny przejazd dla straży pożarnej.",
+    "patrol": "Uwaga! To miejsce jest niebezpieczne. Odejdź na bezpieczną odległość i nie utrudniaj pracy służb.",
+}
+KOMUNIKAT_USPOKOJENIA = ("Uwaga! Zachowaj spokój i nie biegnij. Odejdź powoli na otwartą przestrzeń "
+                         "i pomóż osobom, które upadły.")
+RODZAJE_Z_GLOSNIKIEM = ("prowadzenie", "ostrzezenie", "odsuniecie", "uspokojenie")
+RODZAJE_NA_MIEJSCU = ("zrzut", "ostrzezenie", "odsuniecie", "uspokojenie", "obserwacja")
 
 
 def _wczytaj_mock():
@@ -152,6 +171,11 @@ class Symulator:
         self.schrony = [p for p in data_sources.pobierz_schrony()["punkty"]
                         if not self._w_strefie(p["lat"], p["lon"])]
         self.katalog_zdjec = _wczytaj_katalog_zdjec()
+        # wielokaty do wyboru celu ewakuacji: strefa zalewowa Odry i obrys Lasu Osobowickiego
+        odra = data_sources.pobierz_odre()
+        zalew = odra["strefa_zalewowa"] if odra else self.mock["hydrografia_mock"]["strefa_zalewowa"]
+        self.zalew_xy = [_xy(p) for p in zalew]
+        self.las_xy = [_xy(p) for p in self.mock["lasy_bdl_mock"]["las"]]
         self.broadcast = None
         self.pauza = False
         self.predkosc = 1
@@ -232,10 +256,16 @@ class Symulator:
 
     # ------------------------------------------------------------------ scenariusz
 
-    def uruchom_scenariusz(self, klucz):
+    def uruchom_scenariusz(self, klucz, wariant=None):
         scen = self.mock["scenariusze"][klucz]
+        # scenariusz z wariantami (np. pozar: las / dom / blok / magazyn) - wariant losowany przy kazdym starcie
+        warianty = scen.get("warianty") or {}
+        self.wariant = (wariant if wariant in warianty else random.choice(list(warianty))) if warianty else None
+        if self.wariant:
+            scen = {**scen, **warianty[self.wariant]}
         self.scenariusz_id = klucz
         self.scenariusz = scen
+        self.obszar = scen.get("obszar")
         self.rodzaj = scen.get("rodzaj", "realne")
         self.kroki = [dict(k, stan="oczekuje") for k in scen["kroki"]]
         self.czas = 0
@@ -255,20 +285,160 @@ class Symulator:
         baterie = [100, 64, 88, 31, 95, 77, 58, 90] if patrol else [100, 93, 97, 88, 96, 91, 94, 99]
         self.drony = {}
         for i, d in enumerate(self.mock["drony"]):
-            lat, lon = d["trasa_patrolu"][0] if patrol else self._przy_stacji(d["stacja"], i)
+            trasa = self._losowa_trasa(d["stacja"])
+            lat, lon = random.choice(trasa) if patrol else self._przy_stacji(d["stacja"], i)
             self.drony[d["id"]] = {
                 "id": d["id"], "nazwa": d["nazwa"], "tryb": d["tryb"], "sensor": d["sensor"], "stacja": d["stacja"],
                 "lat": lat, "lon": lon, "kurs": 0.0, "bateria": float(baterie[i % len(baterie)]),
-                "zywy": True, "faza": "patrol" if patrol else "baza",
+                "zywy": True, "faza": "patrol",
                 "zadanie": None, "kolejka": [], "cel": None, "skan": 0, "plan": [], "plan_cel": None,
                 "orbita_kat": random.uniform(0, 2 * math.pi), "orbita_r": 0.0,
                 "twarze": 0, "bufor": [], "hops": 1, "hops_poprz": 1, "nadaje": 0,
-                "trasa": d["trasa_patrolu"], "trasa_idx": 1,
-                "zapas": dict(d["zaopatrzenie"]), "zapas_start": dict(d["zaopatrzenie"]),
+                "trasa": trasa, "trasa_idx": random.randrange(len(trasa)), "postoj": 0,
+                "predkosc": random.uniform(0.75, 1.25), "orbita_kier": random.choice((1, -1)),
+                "zapas": dict(d["zaopatrzenie"]), "zapas_start": dict(d["zaopatrzenie"]), "obszar": False,
+                "odporny": False,
             }
+        if self.obszar:
+            # drony najblizsze miejscu zdarzenia przechodza na patrol wokol niego, reszta pilnuje swoich regionow
+            srodek = (self.obszar["lat"], self.obszar["lon"])
+            wg_odl = sorted(self.drony.values(), key=lambda d: _km((d["lat"], d["lon"]), srodek))
+            grupa = wg_odl[:self.obszar.get("drony", 3)]
+            # skrypt nadaje komunikat glosowy - w grupie musi byc dron z glosnikiem (najblizszy taki)
+            if any(k.get("komunikat") for k in self.kroki) and not any(d["tryb"] == "aktywny" for d in grupa):
+                grupa[-1] = next(d for d in wg_odl if d["tryb"] == "aktywny")
+            for d in grupa:
+                d["obszar"], d["trasa"], d["trasa_idx"] = True, self._trasa_drona(d, obszar=True), 0
+        info_floty = self._dostosuj_flote_do_pogody()
+        self._przydziel_drony_krokom()
         db.resetuj_misje()
+        if info_floty:
+            self._zdarzenie(None, None, "INFO", info_floty)
         self._przelicz_mesh()
         self._wykonaj_kroki_scenariusza()
+
+    def _dostosuj_flote_do_pogody(self):
+        """
+        Deszcz powyzej limitu standardowych BSP: w powietrzu tylko 4-5 dronow w wersji deszczowej (IP55),
+        pozostale uziemione na stacjach. Zostaja drony potrzebne w skrypcie scenariusza, a reszta miejsc
+        przypada dronom z mozliwie odleglych stacji, zeby pokrycie miasta bylo rownomierne.
+        """
+        opad = self.pogoda.get("opad_mm_h", 0)
+        if opad < LIMIT_OPADU_STD_MM_H:
+            return None
+        n_lot = 4 if opad >= SILNY_OPAD_MM_H else 5
+        wymagane = {k["dron"] for k in self.kroki if k.get("dron")} | {d["id"] for d in self.drony.values() if d["obszar"]}
+        lecace = [d for d in self.drony.values() if d["id"] in wymagane]
+        reszta = [d for d in self.drony.values() if d["id"] not in wymagane]
+        if not any(d["tryb"] == "aktywny" for d in lecace):  # co najmniej jeden dron z glosnikiem
+            glosnik = next((d for d in reszta if d["tryb"] == "aktywny"), None)
+            if glosnik:
+                lecace.append(glosnik)
+                reszta.remove(glosnik)
+        while len(lecace) < n_lot and reszta:
+            stacje = [self.stacje[d["stacja"]] for d in lecace]
+            d = max(reszta, key=lambda x: min((_km((self.stacje[x["stacja"]]["lat"], self.stacje[x["stacja"]]["lon"]),
+                                                   (s["lat"], s["lon"])) for s in stacje), default=0))
+            lecace.append(d)
+            reszta.remove(d)
+        for d in lecace:
+            d["odporny"] = True
+            d["predkosc"] *= 0.9  # ciezsza konstrukcja - nieco wolniejszy przelot
+        for i, d in enumerate(reszta):
+            d["faza"], d["hops"], d["hops_poprz"] = "uziemiony", None, None
+            d["lat"], d["lon"] = self._przy_stacji(d["stacja"], i)
+        drony_txt = "drony" if 2 <= len(lecace) % 10 <= 4 and not 12 <= len(lecace) % 100 <= 14 else "dronów"
+        return (f'Opad {opad:g} mm/h przekracza limit standardowych BSP (IP43, do {LIMIT_OPADU_STD_MM_H:g} mm/h). '
+                f'W powietrzu: {len(lecace)} {drony_txt} w wersji deszczowej (IP55). '
+                f'Pozostałe ({len(reszta)}) czekają na stacjach.')
+
+    def _kontekst(self):
+        """Rodzaj sytuacji - od niego zalezy, co dron proponuje operatorowi (schron tylko przy alarmie)."""
+        if self.scenariusz_id in ("alarm", "cwiczenia"):
+            return "schron"
+        if self.scenariusz_id == "powodz":
+            return "powodz"
+        if self.scenariusz_id == "pozar":
+            return "pozar_las" if self.wariant == "las" else "pozar_budynek"
+        return "patrol"
+
+    def _cel_prowadzenia(self, lat, lon):
+        """Dokad dron prowadzi ludzi: schron (alarm), budynek poza strefa zalewowa (powodz), skraj lasu (pozar lasu)."""
+        kontekst = self._kontekst()
+        if kontekst == "pozar_las":
+            p, w = _xy((lat, lon)), self.las_xy
+            cx, cy = sum(q[0] for q in w) / len(w), sum(q[1] for q in w) / len(w)
+            brzeg = _najblizszy_na_brzegu(p, w) if _w_wielokacie(p, w) else p
+            dx, dy = brzeg[0] - cx, brzeg[1] - cy
+            dl = math.hypot(dx, dy) or 1.0
+            cel = self._poza_strefa(_ll((brzeg[0] + dx / dl * 0.35, brzeg[1] + dy / dl * 0.35)))
+            return {"id": "ZBIORKA", "adres": "punkt zbiórki na skraju lasu", "lat": cel[0], "lon": cel[1],
+                    "odleglosc_km": round(_km((lat, lon), cel), 2), "do": "do punktu zbiórki poza lasem",
+                    "w": "w punkcie zbiórki", "adres_w_komunikacie": False, "dopisek": " Oddalaj się od dymu."}
+        if kontekst == "powodz":
+            # schron w piwnicy przy powodzi to pulapka - wybieramy budynek z listy KG PSP lezacy poza strefa zalewowa
+            cel = czk_logic.najblizsze_schrony(lat, lon, self.schrony, n=1,
+                                               wyklucz=lambda s: _w_wielokacie(_xy((s["lat"], s["lon"])), self.zalew_xy))
+            if not cel:
+                return None
+            return dict(cel[0], do="w bezpieczne miejsce poza strefą zalewową", w="w bezpiecznym miejscu",
+                        adres_w_komunikacie=True, dopisek=" Nie schodź do piwnic ani garaży podziemnych.")
+        cel = czk_logic.najblizsze_schrony(lat, lon, self.schrony, n=1)
+        if not cel:
+            return None
+        return dict(cel[0], do="do schronu", w="w schronie", adres_w_komunikacie=True, dopisek="")
+
+    def _przydziel_drony_krokom(self):
+        """
+        Kroki z 'punkt' zamiast sektora / bez drona: sektor z pozycji, dron - najmniej obciazony, potem najblizszy.
+        Zdarzenie z rejonem (np. pozar): wszystkie zadania dostaje tylko grupa rejonu (1-2 drony), reszta roju
+        dalej patroluje miasto. Przekaznik mesh dostaje osobny dron, zeby kolejne zadania nie sciagaly go z pozycji.
+        """
+        zadania = [k for k in self.kroki if k["typ"] == "zadanie"]
+        grupa = [d for d in self.drony.values() if d["obszar"]]
+        uzyte = Counter() if grupa else Counter(k["dron"] for k in zadania if k.get("dron"))
+        przekazniki = set()
+        for k in sorted(zadania, key=lambda k: not k.get("przekaznik")):
+            if k.get("punkt") and not k.get("sektor"):
+                k["sektor"] = self._sektor_dla(*k["punkt"]) or min(
+                    self.sektory_def, key=lambda sid: _km(self._srodek_sektora(sid), k["punkt"]))
+            if grupa:
+                kandydaci = [d for d in grupa if d["id"] not in przekazniki] or grupa
+            elif k.get("dron"):
+                continue
+            else:
+                kandydaci = [d for d in self.drony.values() if d["faza"] != "uziemiony"]
+            if k.get("komunikat") and not k.get("wykrycie"):  # sam komunikat glosowy - tylko dron z glosnikiem
+                kandydaci = [d for d in kandydaci if d["tryb"] == "aktywny"] or kandydaci
+            cel = k.get("punkt") or self._srodek_sektora(k["sektor"])
+            d = min(kandydaci, key=lambda d: (uzyte[d["id"]], _km((d["lat"], d["lon"]), cel)))
+            k["dron"] = d["id"]
+            uzyte[d["id"]] += 1
+            if k.get("przekaznik") and len(grupa) > 1:
+                przekazniki.add(d["id"])
+
+    def _petla(self, srodek, r_min, r_max):
+        """Losowa petla patrolowa: inna liczba punktow, promien, kierunek i ksztalt dla kazdego drona."""
+        n = random.randint(4, 7)
+        start, kier = random.uniform(0, 2 * math.pi), random.choice((1, -1))
+        punkty = []
+        for i in range(n):
+            kat = start + kier * i * 2 * math.pi / n + random.uniform(-0.4, 0.4)
+            r = random.uniform(r_min, r_max)
+            lat = min(max(srodek[0] + r * math.cos(kat) / KM_NA_STOPIEN_LAT, 51.052), 51.148)
+            lon = min(max(srodek[1] + r * math.sin(kat) / KM_NA_STOPIEN_LON, 16.952), 17.148)
+            punkty.append(self._poza_strefa((lat, lon)))
+        return punkty
+
+    def _losowa_trasa(self, stacja_id):
+        s = self.stacje[stacja_id]
+        return self._petla((s["lat"], s["lon"]), 0.5, 1.7)
+
+    def _trasa_drona(self, d, obszar=None):
+        if (d["obszar"] if obszar is None else obszar) and self.obszar:
+            o = self.obszar
+            return self._petla((o["lat"], o["lon"]), 0.25 * o["r_km"], o["r_km"])
+        return self._losowa_trasa(d["stacja"])
 
     def _przy_stacji(self, stacja_id, i=0):
         s = self.stacje[stacja_id]
@@ -296,11 +466,11 @@ class Symulator:
                 self._alarm(k["tresc"])
             elif k["typ"] == "zadanie":
                 k["stan"] = "w toku"
-                zadanie = {"rodzaj": "rozpoznanie", "sektor": k["sektor"], "wykrycie": k.get("wykrycie"),
+                zadanie = {"rodzaj": "rozpoznanie", "sektor": k["sektor"], "punkt": k.get("punkt"), "wykrycie": k.get("wykrycie"),
                            "komunikat": k.get("komunikat", False), "przekaznik": k.get("przekaznik", False),
                            "krok": idx}
                 dron = self.drony[k["dron"]]
-                if not dron["zywy"] or dron["faza"] in ("rtb", "ladowanie"):
+                if not dron["zywy"] or dron["faza"] in ("rtb", "ladowanie", "uziemiony"):
                     dron = self._wybierz_wykonawce(zadanie, wyklucz=dron) or dron
                 dron["kolejka"].append(zadanie)
 
@@ -351,7 +521,8 @@ class Symulator:
         """CZK i stacje (range extenders) sa spiete lacza szkieletowym; drony lacza sie radiowo z kazdym wezlem w zasiegu."""
         stale = [("CZK", self.baza["lat"], self.baza["lon"])]
         stale += [(s["id"], s["lat"], s["lon"]) for s in self.stacje.values() if s["zywa"]]
-        drony = [(d["id"], d["lat"], d["lon"]) for d in self.drony.values() if d["zywy"]]
+        # uziemiony dron stoi wylaczony na stacji - nie jest wezlem sieci
+        drony = [(d["id"], d["lat"], d["lon"]) for d in self.drony.values() if d["zywy"] and d["faza"] != "uziemiony"]
         sasiedzi = {w[0]: [] for w in stale + drony}
         self.linki = []
         for i, a in enumerate(drony):
@@ -375,7 +546,7 @@ class Symulator:
 
     def _obsluz_zmiany_lacznosci(self):
         for d in self.drony.values():
-            if not d["zywy"]:
+            if not d["zywy"] or d["faza"] == "uziemiony":
                 continue
             if d["hops_poprz"] is not None and d["hops"] is None:
                 self._dostarcz(self._ev_sys(d["id"], "MESH",
@@ -404,8 +575,10 @@ class Symulator:
         d["lon"] += dx / odl * krok / KM_NA_STOPIEN_LON
         return False
 
-    def _lec(self, d, cel, krok=KROK_KM, loguj=False):
+    def _lec(self, d, cel, krok=None, loguj=False):
         cel = tuple(cel)
+        if krok is None:
+            krok = KROK_KM * d.get("predkosc", 1.0)
         if d["plan_cel"] != cel:
             d["plan"] = self._planuj((d["lat"], d["lon"]), cel)
             d["plan_cel"] = cel
@@ -414,7 +587,7 @@ class Symulator:
                 if strefy:
                     self._zdarzenie(d["id"], None, "INFO",
                                     f'{d["nazwa"]}: trasa omija strefę zakazu lotów {", ".join(sorted(strefy))} '
-                                    f'(+{len(d["plan"]) - 1} pkt zwrotny).')
+                                    f'(punkty zwrotne: {len(d["plan"]) - 1}).')
         if not d["plan"]:
             return True
         if self._krok_do(d, d["plan"][0], krok):
@@ -422,16 +595,39 @@ class Symulator:
         return not d["plan"]
 
     def _orbituj(self, d, srodek, promien=ORBITA_KM):
+        """
+        Krazenie nad punktem. Gdy kolejny punkt okregu wpada w strefe zakazu lotow, dron zawraca
+        i lata tam i z powrotem po dozwolonym luku (zamiast stac i przeskakiwac na druga strone okregu).
+        """
+        kier = d.get("orbita_kier", 1)
         r = min(promien, d["orbita_r"] + 0.07)
-        kat = d["orbita_kat"] + 0.28
-        lat = srodek[0] + r * math.cos(kat) / KM_NA_STOPIEN_LAT
-        lon = srodek[1] + r * math.sin(kat) / KM_NA_STOPIEN_LON
-        d["orbita_kat"] = kat
-        if self._w_strefie(lat, lon, MARGINES_STREFY_KM):
-            return
-        d["orbita_r"], d["lat"], d["lon"] = r, lat, lon
-        d["kurs"] = (math.degrees(kat) + 90) % 360
-        d["plan_cel"] = None
+        for _ in range(2):
+            kat = d["orbita_kat"] + 0.28 * d.get("predkosc", 1.0) * kier
+            lat = srodek[0] + r * math.cos(kat) / KM_NA_STOPIEN_LAT
+            lon = srodek[1] + r * math.sin(kat) / KM_NA_STOPIEN_LON
+            if not self._w_strefie(lat, lon, MARGINES_STREFY_KM):
+                d["orbita_kat"], d["orbita_kier"] = kat, kier
+                d["orbita_r"], d["lat"], d["lon"] = r, lat, lon
+                d["kurs"] = (math.degrees(kat) + 90 * kier) % 360
+                d["plan_cel"] = None
+                return
+            kier = -kier
+        # oba sasiednie punkty zablokowane - najblizszy wolny punkt okregu, o ile lezy w zasiegu jednego kroku drona
+        for n in range(2, 12):
+            for znak in (1, -1):
+                kat = d["orbita_kat"] + 0.28 * n * znak
+                lat = srodek[0] + r * math.cos(kat) / KM_NA_STOPIEN_LAT
+                lon = srodek[1] + r * math.sin(kat) / KM_NA_STOPIEN_LON
+                if _km((lat, lon), (d["lat"], d["lon"])) <= KROK_KM and not self._w_strefie(lat, lon, MARGINES_STREFY_KM):
+                    d["orbita_kat"], d["orbita_kier"] = kat, znak
+                    d["orbita_r"], d["lat"], d["lon"] = r, lat, lon
+                    d["kurs"] = (math.degrees(kat) + 90 * znak) % 360
+                    d["plan_cel"] = None
+                    return
+        # nadal brak miejsca - ciasniejsze kolo, a gdy srodek lezy w marginesie strefy, przesun go na zewnatrz
+        d["orbita_r"] = max(0.0, d["orbita_r"] - 0.1)
+        if d["cel"] is not None and self._w_strefie(srodek[0], srodek[1], MARGINES_STREFY_KM):
+            d["cel"] = list(self._poza_strefa(srodek))
 
     def _srodek_sektora(self, sid):
         s = self.sektory_def[sid]
@@ -446,6 +642,8 @@ class Symulator:
     # ------------------------------------------------------------------ krok drona
 
     def _krok_drona(self, d):
+        if d["faza"] == "uziemiony":
+            return
         if d["nadaje"] > 0:
             d["nadaje"] -= 1
         if d["faza"] not in ("ladowanie", "baza"):
@@ -470,7 +668,7 @@ class Symulator:
             if d["bateria"] >= 100.0:
                 uzupelnione = d["zapas"] != d["zapas_start"]
                 d["zapas"] = dict(d["zapas_start"])
-                d["faza"] = "patrol" if self.scenariusz_id == "patrol" else "baza"
+                d["faza"] = "patrol"
                 self._zdarzenie(d["id"], None, "INFO", f'{d["nazwa"]}: bateria wymieniona'
                                 + (", apteczka uzupełniona" if uzupelnione else "") + " — gotowy do misji.")
             return
@@ -484,9 +682,18 @@ class Symulator:
         if d["faza"] in ("orbita", "przekaznik") and d["cel"]:
             self._orbituj(d, d["cel"], ORBITA_PRZEKAZNIKA_KM if d["faza"] == "przekaznik" else ORBITA_KM)
         elif d["faza"] == "patrol":
-            if self._lec(d, d["trasa"][d["trasa_idx"]]):
-                d["trasa_idx"] = (d["trasa_idx"] + 1) % len(d["trasa"])
-            self._losowe_wykrycie(d)
+            punkt = d["trasa"][d["trasa_idx"]]
+            if d["postoj"] > 0:
+                d["postoj"] -= 1
+                self._orbituj(d, d["postoj_pkt"], 0.12)
+            elif self._lec(d, punkt):
+                d["trasa_idx"] += 1
+                if d["trasa_idx"] >= len(d["trasa"]):
+                    d["trasa"], d["trasa_idx"] = self._trasa_drona(d), 0
+                if random.random() < 0.3:  # chwilowe krazenie nad osiagnietym punktem
+                    d["postoj"], d["postoj_pkt"], d["orbita_r"] = random.randint(2, 6), punkt, 0.0
+            if self.scenariusz_id == "patrol":
+                self._losowe_wykrycie(d)
 
     def _rozpocznij_zadanie(self, d, z):
         d["skan"], d["orbita_r"] = 0, 0.0
@@ -496,6 +703,9 @@ class Symulator:
                 return
             d["cel"] = [inc["g_lat"], inc["g_lon"]] if z["rodzaj"] == "prowadzenie" else [inc["lat"], inc["lon"]]
             d["cel"] = list(self._poza_strefa(d["cel"]))
+        elif z.get("punkt"):  # konkretny adres zdarzenia (np. plonacy budynek) - tylko drobny rozrzut
+            s = (z["punkt"][0] + random.uniform(-0.0006, 0.0006), z["punkt"][1] + random.uniform(-0.0009, 0.0009))
+            d["cel"] = list(self._poza_strefa(s))
         else:
             s = self._srodek_sektora(z["sektor"])
             if not z.get("przekaznik"):  # przekaznik trzyma dokladna pozycje, zeby nie wypasc z zasiegu
@@ -508,7 +718,7 @@ class Symulator:
         if z["rodzaj"] == "prowadzenie":
             self._prowadz(d, z)
             return
-        if z["rodzaj"] in ("zrzut", "ostrzezenie", "obserwacja"):
+        if z["rodzaj"] in RODZAJE_NA_MIEJSCU:
             self._akcja_na_miejscu(d, z)
             return
         if d["faza"] == "lot":
@@ -530,10 +740,11 @@ class Symulator:
         if z.get("krok") is not None:
             self.kroki[z["krok"]]["stan"] = "wykonany"
         d["zadanie"] = None
-        d["faza"] = "przekaznik" if z.get("przekaznik") else "orbita"
+        # dron z grupy rejonu zdarzenia wraca do patrolu wokol niego, pozostale krazą nad miejscem rozpoznania
+        d["faza"] = "przekaznik" if z.get("przekaznik") else ("patrol" if d["obszar"] else "orbita")
 
     def _akcja_na_miejscu(self, d, z):
-        """Zadanie zlecone przez operatora: dolot, akcja (zrzut / ostrzezenie), obserwacja, raport."""
+        """Zadanie zlecone przez operatora: dolot, akcja (zrzut / komunikat z glosnika), obserwacja, raport."""
         inc = self.incydenty.get(z["inc"])
         if inc is None or not inc["aktywny"]:
             d["zadanie"], d["faza"] = None, "orbita"
@@ -548,7 +759,13 @@ class Symulator:
                 if przedmioty:
                     self._zrzuc(d, inc, przedmioty)
             elif z["rodzaj"] == "ostrzezenie":
-                self._komunikat(d, inc["sektor"], f'Uwaga! Zagrożenie: {inc["opis"]}. Natychmiast opuść rejon i nie zbliżaj się.')
+                self._komunikat(d, inc["sektor"], f'Uwaga! W pobliżu wykryto zagrożenie: {inc["opis"]}. '
+                                                  f'Natychmiast opuść ten rejon i nie zbliżaj się.')
+            elif z["rodzaj"] == "odsuniecie":
+                kontekst = self._kontekst()
+                self._komunikat(d, inc["sektor"], KOMUNIKAT_ODSUNIECIA.get(kontekst, KOMUNIKAT_ODSUNIECIA["patrol"]))
+            elif z["rodzaj"] == "uspokojenie":
+                self._komunikat(d, inc["sektor"], KOMUNIKAT_USPOKOJENIA, statystyka=False)
             d["faza"], d["skan"] = "obserwuje", 0
             return
         self._orbituj(d, d["cel"], ORBITA_PRZEKAZNIKA_KM)
@@ -556,18 +773,20 @@ class Symulator:
         if d["skan"] >= TICKI_OBSERWACJI:
             inc["akcja"] = "zakonczona"
             wynik = {"zrzut": "zaopatrzenie dostarczone", "ostrzezenie": "ludzie ostrzeżeni",
+                     "odsuniecie": "ludzie odsunięci na bezpieczną odległość", "uspokojenie": "tłum uspokojony",
                      "obserwacja": "obserwacja zakończona"}[z["rodzaj"]]
             inc["wynik"] = f'{d["nazwa"]}: {wynik}' + (f' ({", ".join(inc["zrzut"])})' if inc["zrzut"] else "")
             self._zdarzenie(d["id"], inc["sektor"], "INFO",
                             f'{d["nazwa"]}: zgłoszenie #{inc["id"]} — {wynik}, dron wraca do zadań.',
                             extra={"inc_id": inc["id"]})
-            d["zadanie"], d["faza"] = None, "orbita"
+            d["zadanie"], d["faza"] = None, "patrol" if d["obszar"] else "orbita"
 
     # ------------------------------------------------------------------ zgloszenia i decyzje operatora
 
     def _wybierz_zdjecie(self, typ):
         pasujace = [z for z in self.katalog_zdjec if typ in z["typy"]]
-        lepsze = [z for z in pasujace if self.scenariusz_id in z.get("scenariusze", [])]
+        tagi = {self.scenariusz_id, f"{self.scenariusz_id}:{self.wariant}"}
+        lepsze = [z for z in pasujace if tagi & set(z.get("scenariusze", []))]
         ogolne = [z for z in pasujace if not z.get("scenariusze")]
         pula = lepsze or ogolne or pasujace
         if not pula:
@@ -605,9 +824,9 @@ class Symulator:
             if inc["akcja"] is not None:
                 return False
             inc["decyzja"] = "dron"
-            inc["rodzaj_akcji"], _ = czk_logic.akcja_drona(inc["typ"], inc["osoby"])
+            inc["rodzaj_akcji"], _ = czk_logic.akcja_drona(inc["typ"], inc["osoby"], self._kontekst())
             inc["akcja"] = "oczekuje"
-            self._dostarcz(self._ev_sys(None, "DECYZJA", f'Operator: wysłać drona do zgłoszenia #{inc["id"]} ({nazwa}, {inc["sektor"]}).',
+            self._dostarcz(self._ev_sys(None, "DECYZJA", f'Operator zlecił wysłanie drona do zgłoszenia #{inc["id"]} ({nazwa}, {inc["sektor"]}).',
                                         sektor=inc["sektor"], extra={"inc_id": inc["id"]}))
             self._przydziel_wykonawce(inc)
         elif akcja == "sluzby":
@@ -697,7 +916,7 @@ class Symulator:
 
     def _najblizszy(self, lat, lon, warunek):
         kandydaci = [x for x in self.drony.values()
-                     if x["zywy"] and x["faza"] not in ("rtb", "ladowanie") and warunek(x)]
+                     if x["zywy"] and x["faza"] not in ("rtb", "ladowanie", "uziemiony") and warunek(x)]
         if not kandydaci:
             return None
         return min(kandydaci, key=lambda x: czk_logic.odleglosc_km(x["lat"], x["lon"], lat, lon)
@@ -709,9 +928,7 @@ class Symulator:
 
     def _przydziel_wykonawce(self, inc):
         rodzaj = inc["rodzaj_akcji"]
-        if rodzaj == "prowadzenie":
-            warunek = lambda x: x["tryb"] == "aktywny" and not self._zajety_zleceniem(x)
-        elif rodzaj == "ostrzezenie":
+        if rodzaj in RODZAJE_Z_GLOSNIKIEM:
             warunek = lambda x: x["tryb"] == "aktywny" and not self._zajety_zleceniem(x)
         elif rodzaj == "zrzut":
             warunek = lambda x: bool(czk_logic.wybierz_zaopatrzenie(inc["typ"], x["zapas"])) and not self._zajety_zleceniem(x)
@@ -723,16 +940,19 @@ class Symulator:
                 inc["rodzaj_akcji"] = "obserwacja"  # zaden dron nie ma juz potrzebnych srodkow
             return
         if rodzaj == "prowadzenie" and inc["schron"] is None:
-            schron = czk_logic.najblizsze_schrony(inc["lat"], inc["lon"], self.schrony, n=1)
-            if not schron:
+            # "schron" = cel prowadzenia: schron, budynek poza strefa zalewowa albo punkt zbiorki - zaleznie od sytuacji
+            inc["schron"] = self._cel_prowadzenia(inc["lat"], inc["lon"])
+            if inc["schron"] is None:
                 inc["rodzaj_akcji"] = "obserwacja"
                 return
-            inc["schron"] = schron[0]
         inc["akcja"] = "przydzielona"
         inc["wykonawca"] = d["id"]
         d["kolejka"].insert(0, {"rodzaj": rodzaj, "inc": inc["id"], "sektor": inc["sektor"]})
-        cel = {"prowadzenie": f'poprowadzi {inc["osoby"]} os. do schronu {inc["schron"]["adres"]} ({inc["schron"]["odleglosc_km"]} km)' if inc["schron"] else "",
-               "zrzut": "leci z apteczką", "ostrzezenie": "leci ostrzec ludzi w rejonie", "obserwacja": "leci obserwować miejsce zdarzenia"}[rodzaj]
+        s = inc["schron"]
+        cel = {"prowadzenie": f'poprowadzi {inc["osoby"]} os. {s["do"]}: {s["adres"]} ({s["odleglosc_km"]} km)' if s else "",
+               "zrzut": "leci z apteczką", "ostrzezenie": "leci ostrzec ludzi w rejonie",
+               "odsuniecie": "leci odsunąć ludzi od miejsca zdarzenia", "uspokojenie": "leci uspokoić tłum",
+               "obserwacja": "leci obserwować miejsce zdarzenia"}[rodzaj]
         self._dostarcz(self._ev_sys(d["id"], "EWAKUACJA" if rodzaj == "prowadzenie" else "DECYZJA",
                                     f'{d["nazwa"]} {cel} (zgłoszenie #{inc["id"]}, {inc["sektor"]}).',
                                     sektor=inc["sektor"], extra={"inc_id": inc["id"]}))
@@ -742,6 +962,8 @@ class Symulator:
     def _prefiks_komunikatu(self, typ=None):
         if typ == "PANIKA":
             return "Zachowaj spokój. "
+        if self.scenariusz.get("prefiks"):
+            return self.scenariusz["prefiks"]
         return {"alarm": "Alarm powietrzny. ", "cwiczenia": "To jest alarm próbny. ",
                 "powodz": "Zagrożenie powodziowe. ", "pozar": "Pożar lasu. "}.get(self.scenariusz_id, "")
 
@@ -755,8 +977,10 @@ class Symulator:
             if self._lec(d, (inc["g_lat"], inc["g_lon"]), loguj=True):
                 if inc["podazyli"] is None:
                     d["faza"], d["skan"] = "wezwanie", 0
-                    tresc = (f'Uwaga! {self._prefiks_komunikatu(inc["typ"])}Podążaj za dronem — prowadzę do schronu: '
-                             f'{inc["schron"]["adres"]}.')
+                    s = inc["schron"]
+                    dokad = f'{s["do"]}: {s["adres"]}' if s.get("adres_w_komunikacie", True) else s["do"]
+                    tresc = (f'Uwaga! {self._prefiks_komunikatu(inc["typ"])}Proszę iść za dronem — prowadzę '
+                             f'{dokad}.{s.get("dopisek", "")}')
                     self._komunikat(d, inc["sektor"], tresc, statystyka=False)
                     inc["t_wezwania"] = self.czas
                 else:
@@ -769,8 +993,8 @@ class Symulator:
                 inc["akcja"] = "w_toku"
                 nie = inc["osoby"] - inc["podazyli"]
                 self._zdarzenie(d["id"], inc["sektor"], "EWAKUACJA",
-                                f'{d["nazwa"]} prowadzi {inc["podazyli"]}/{inc["osoby"]} os. do schronu '
-                                f'{inc["schron"]["adres"]}.' + (f" {nie} os. nie reaguje na komunikat." if nie else ""),
+                                f'{d["nazwa"]} prowadzi {inc["podazyli"]}/{inc["osoby"]} os. {inc["schron"]["do"]}: '
+                                f'{inc["schron"]["adres"]}.' + (f" Na komunikat nie reaguje {nie} os." if nie else ""),
                                 extra={"inc_id": inc["id"]})
                 d["faza"] = "prowadzi"
             return
@@ -793,7 +1017,7 @@ class Symulator:
         inc["g_lat"], inc["g_lon"] = inc["schron"]["lat"], inc["schron"]["lon"]
         inc["w_schronie"] = max(0, inc["podazyli"] - (random.randint(0, 1) if inc["podazyli"] > 5 else 0))
         inc["akcja"] = "zakonczona"
-        inc["wynik"] = f'{inc["w_schronie"]} os. w schronie'
+        inc["wynik"] = f'{inc["w_schronie"]} os. {inc["schron"]["w"]}'
         self.w_schronie_scenariusz += inc["w_schronie"]
         czas_s = self.czas - (inc["t_wezwania"] or inc["t"])
         proc = round(100 * inc["podazyli"] / inc["osoby"]) if inc["osoby"] else 0
@@ -804,23 +1028,30 @@ class Symulator:
             "schron_adres": inc["schron"]["adres"], "odleglosc_km": inc["schron"]["odleglosc_km"],
         })
         self._zdarzenie(d["id"], inc["sektor"], "EWAKUACJA",
-                        f'Ewakuacja zakończona ({inc["sektor"]}): {inc["w_schronie"]} os. w schronie {inc["schron"]["adres"]} '
-                        f'— {proc}% podążyło za dronem, czas {czas_s // 60}:{czas_s % 60:02d}.',
+                        f'Ewakuacja zakończona ({inc["sektor"]}): {inc["w_schronie"]} os. {inc["schron"]["w"]} '
+                        f'({inc["schron"]["adres"]}). Za dronem poszło {proc}% osób, czas {czas_s // 60}:{czas_s % 60:02d}.',
                         osoby=inc["w_schronie"], extra={"inc_id": inc["id"], "analiza": True})
         d["zadanie"], d["faza"], d["cel"] = None, "orbita", [inc["schron"]["lat"], inc["schron"]["lon"]]
 
     # ------------------------------------------------------------------ komunikaty glosowe
 
     def _tresc_komunikatu(self, sid):
-        schron = self.schrony_dla(sid, 1)
-        dokad = f" Najbliższe miejsce schronienia: {schron[0]['adres']}." if schron else ""
+        # schron podajemy tylko przy alarmie; przy powodzi - budynek poza strefa zalewowa, w innych sytuacjach nic
+        kontekst = self._kontekst()
+        dokad = ""
+        if kontekst in ("schron", "powodz"):
+            srodek = self._srodek_sektora(sid)
+            cel = self._cel_prowadzenia(srodek[0], srodek[1])
+            if cel:
+                dokad = (f" Najbliższy schron: {cel['adres']}." if kontekst == "schron"
+                         else f" Bezpieczne miejsce poza strefą zalewową: {cel['adres']}.{cel['dopisek']}")
         teksty = {
             "powodz": "Uwaga! Zagrożenie powodziowe. Natychmiast opuść strefę zalewową.",
-            "pozar": "Uwaga! Pożar lasu. Natychmiast opuść las, kieruj się pod wiatr.",
             "alarm": "Uwaga! Alarm powietrzny. Natychmiast udaj się do schronu.",
-            "cwiczenia": "Uwaga! To jest alarm próbny. Prosimy udać się do schronu.",
+            "cwiczenia": "Uwaga! To jest alarm próbny w ramach ćwiczeń. Proszę udać się do schronu.",
         }
-        return teksty.get(self.scenariusz_id, "Uwaga! Komunikat systemu HERMES. Opuść strefę.") + dokad
+        tekst = self.scenariusz.get("tresc_komunikatu") or teksty.get(self.scenariusz_id)
+        return (tekst or "Uwaga! Komunikat systemu HERMES. Zachowaj ostrożność i stosuj się do poleceń służb.") + dokad
 
     def _komunikat(self, d, sid, tresc, statystyka=True):
         d["nadaje"] = 8
@@ -833,7 +1064,7 @@ class Symulator:
                                  "typ": "KOMUNIKAT", "sektor": sid, "dron_id": d["id"],
                                  "powiadomieni": w_zasiegu, "podazyli": reakcja})
             extra["analiza"] = True
-            tresc_logu = f'{d["nazwa"]} (głośnik) → {sid}: „{tresc}” Reakcja: {reakcja}/{w_zasiegu} os. opuszcza rejon.'
+            tresc_logu = f'{d["nazwa"]} (głośnik) → {sid}: „{tresc}” Zareagowało {reakcja} z {w_zasiegu} osób w zasięgu.'
         else:
             tresc_logu = f'{d["nazwa"]} (głośnik) → {sid}: „{tresc}”'
         self._zdarzenie(d["id"], sid, "KOMUNIKAT", tresc_logu, extra=extra, lat=d["lat"], lon=d["lon"])
@@ -841,7 +1072,7 @@ class Symulator:
     def _alarm(self, tresc):
         """Komunikat o zagrozeniu nadawany natychmiast przez wszystkie drony z glosnikiem."""
         for d in self.drony.values():
-            if d["zywy"] and d["tryb"] == "aktywny" and d["faza"] not in ("rtb", "ladowanie"):
+            if d["zywy"] and d["tryb"] == "aktywny" and d["faza"] not in ("rtb", "ladowanie", "uziemiony"):
                 sid = self._sektor_dla(d["lat"], d["lon"]) or "C2"
                 schron = self.schrony_dla(sid, 1)
                 self._komunikat(d, sid, tresc + (f" Najbliższy schron: {schron[0]['adres']}." if schron else ""))
@@ -861,7 +1092,7 @@ class Symulator:
             cel = (inc["g_lat"], inc["g_lon"])
         else:
             cel = self._srodek_sektora(zadanie["sektor"])
-        wymaga_glosnika = zadanie["rodzaj"] in ("prowadzenie", "ostrzezenie") or (zadanie.get("komunikat") and not zadanie.get("wykrycie"))
+        wymaga_glosnika = zadanie["rodzaj"] in RODZAJE_Z_GLOSNIKIEM or (zadanie.get("komunikat") and not zadanie.get("wykrycie"))
         return self._najblizszy(cel[0], cel[1], lambda x: x is not wyklucz and (x["tryb"] == "aktywny" or not wymaga_glosnika))
 
     def _przekaz_zadania(self, d):
@@ -883,7 +1114,8 @@ class Symulator:
                 nowy["kolejka"].insert(0, z)
             else:
                 nowy["kolejka"].append(z)
-            rola = {"prowadzenie": "prowadzenie grupy", "zrzut": "zrzut zaopatrzenia", "ostrzezenie": "ostrzeżenie",
+            rola = {"prowadzenie": "prowadzenie grupy", "zrzut": "zrzut zaopatrzenia", "ostrzezenie": "ostrzeżenie ludzi",
+                    "odsuniecie": "odsunięcie ludzi", "uspokojenie": "uspokojenie tłumu",
                     "obserwacja": "obserwację"}.get(z["rodzaj"], "rolę przekaźnika" if z.get("przekaznik") else "zadanie")
             self._dostarcz(self._ev_sys(nowy["id"], "MESH",
                            f'Rój: {nowy["nazwa"]} przejmuje {rola} w {z["sektor"]} od {d["nazwa"]}.'))
@@ -904,7 +1136,7 @@ class Symulator:
         else:
             d.update({"zywy": True, "bateria": 100.0, "zadanie": None, "kolejka": [], "bufor": [], "plan": [],
                       "plan_cel": None, "zapas": dict(d["zapas_start"]),
-                      "faza": "patrol" if self.scenariusz_id == "patrol" else "baza"})
+                      "faza": "patrol"})
             d["lat"], d["lon"] = self._przy_stacji(d["stacja"], int(d["id"][1:]))
             self._dostarcz(self._ev_sys(d["id"], "MESH", f'{d["nazwa"]}: nowy BSP startuje ze stacji {d["stacja"]}.'))
         self._przelicz_mesh()
@@ -928,7 +1160,7 @@ class Symulator:
 
     def incydent_publiczny(self, i):
         t = czk_logic.TYPY[i["typ"]]
-        rodzaj, zalecenie = czk_logic.akcja_drona(i["typ"], i["osoby"])
+        rodzaj, zalecenie = czk_logic.akcja_drona(i["typ"], i["osoby"], self._kontekst())
         wyk = self.drony.get(i["wykonawca"]) if i["wykonawca"] else None
         zdj = i["zdjecie"]
         return {
@@ -974,7 +1206,9 @@ class Symulator:
                 "id": d["id"], "nazwa": d["nazwa"], "tryb": d["tryb"], "sensor": d["sensor"], "stacja": d["stacja"],
                 "lat": round(d["lat"], 5), "lon": round(d["lon"], 5), "kurs": round(d["kurs"]),
                 "bateria": round(d["bateria"], 1), "zywy": d["zywy"], "faza": d["faza"],
-                "status_misji": OPIS_FAZY.get(d["faza"], d["faza"]).format(s=sektor),
+                "status_misji": ("Patrol rejonu zdarzenia — rozpoznanie z powietrza" if d["faza"] == "patrol" and d["obszar"]
+                                 else OPIS_FAZY.get(d["faza"], d["faza"]).format(s=sektor)),
+                "odporny": d["odporny"], "spec": SPEC_DESZCZ if d["odporny"] else SPEC_STD,
                 "sektor": self._sektor_dla(d["lat"], d["lon"]), "hops": d["hops"],
                 "twarze": d["twarze"], "kolejka": len(d["kolejka"]) + (1 if d["zadanie"] else 0),
                 "bufor": len(d["bufor"]), "nadaje": d["nadaje"] > 0,
@@ -989,7 +1223,9 @@ class Symulator:
             "czas": self.czas, "pauza": self.pauza, "predkosc": self.predkosc,
             "scenariusz": {
                 "id": self.scenariusz_id, "nazwa": self.scenariusz["nazwa"], "opis": self.scenariusz["opis"],
-                "rodzaj": self.rodzaj, "warstwy": self.scenariusz["warstwy"],
+                "rodzaj": self.rodzaj, "warstwy": self.scenariusz["warstwy"], "wariant": self.wariant,
+                "ogniska": self.scenariusz.get("ogniska"), "obszar": self.obszar,
+                "godzina_startu": self.scenariusz.get("godzina_startu", "12:00"),
                 "kroki": [{"t": k["t"], "opis": self._opis_kroku(k), "stan": k["stan"], "typ": k["typ"]}
                           for k in self.kroki],
             },

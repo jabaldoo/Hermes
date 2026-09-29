@@ -1,8 +1,9 @@
 {
- "opis": "Zdjęcia poglądowe zgłoszeń (Wikimedia Commons, wolne licencje). Liczba 'osoby' = osoby widoczne na zdjęciu na pewno (adnotacja ręczna, ostrożna).",
+ "opis": "Zdjęcia poglądowe zgłoszeń (Wikimedia Commons, wolne licencje). Każde zdjęcie identyfikuje nazwa pliku ('plik'); 'zrodlo' to tylko link do strony autora na Commons, wymagany do uznania autorstwa. Liczba 'osoby' = osoby na pewno widoczne na zdjęciu (adnotacja ręczna, ostrożna).",
  "zdjecia": [
   {
-   "plik": "ludzie-0.jpg",
+   "plik": "powodz-1997-mieszkancy-przy-nabrzezu.jpg",
+   "opis": "Mieszkańcy przy zalanym nabrzeżu",
    "typy": [
     "LUDZIE"
    ],
@@ -10,14 +11,13 @@
     "powodz"
    ],
    "osoby": 8,
-   "opis": "Mieszkańcy przy zalanym nabrzeżu",
    "autor": "Tomasz Czarnecki",
    "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw-03.JPG",
-   "tytul": "File:Powódź 1997 Wrocław-03.JPG"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw-03.JPG"
   },
   {
-   "plik": "ludzie-2.jpg",
+   "plik": "powodz-1997-zalane-osiedle.jpg",
+   "opis": "Zalane osiedle, zatopione samochody",
    "typy": [
     "LUDZIE"
    ],
@@ -25,14 +25,13 @@
     "powodz"
    ],
    "osoby": 0,
-   "opis": "Zalane osiedle, zatopione samochody",
    "autor": "Aleksander Sikora",
    "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw-8756.jpg",
-   "tytul": "File:Powódź 1997 Wrocław-8756.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw-8756.jpg"
   },
   {
-   "plik": "ludzie-6.jpg",
+   "plik": "powodz-1997-smiglowiec-nad-blokami.jpg",
+   "opis": "Zalane osiedle, śmigłowiec nad blokami",
    "typy": [
     "LUDZIE"
    ],
@@ -40,14 +39,13 @@
     "powodz"
    ],
    "osoby": 0,
-   "opis": "Zalane osiedle, śmigłowiec nad blokami",
    "autor": "J.M.K. Kokot",
    "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw_012.jpg",
-   "tytul": "File:Powódź 1997 Wrocław 012.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw_012.jpg"
   },
   {
-   "plik": "ludzie-8.jpg",
+   "plik": "powodz-1997-zalana-ulica.jpg",
+   "opis": "Zalana ulica między blokami",
    "typy": [
     "LUDZIE",
     "ZATOR"
@@ -56,248 +54,228 @@
     "powodz"
    ],
    "osoby": 0,
-   "opis": "Zalana ulica między blokami",
    "autor": "J.M.K. Kokot",
    "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw_020.jpg",
-   "tytul": "File:Powódź 1997 Wrocław 020.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Pow%C3%B3d%C5%BA_1997_Wroc%C5%82aw_020.jpg"
   },
   {
-   "plik": "zagrozenie-3.jpg",
+   "plik": "ludzie-przy-zamknietym-przejsciu.jpg",
+   "opis": "Osoby przy zamkniętym przejściu",
    "typy": [
     "LUDZIE"
    ],
    "scenariusze": [],
    "osoby": 10,
-   "opis": "Osoby przy zamkniętym przejściu",
    "autor": "Syced",
    "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Police_cordon_at_entrance_of_Shibuya_Mark_City.jpg",
-   "tytul": "File:Police cordon at entrance of Shibuya Mark City.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Police_cordon_at_entrance_of_Shibuya_Mark_City.jpg"
   },
   {
-   "plik": "panika-2.jpg",
+   "plik": "tlum-biegnacy-ulica.jpg",
+   "opis": "Grupa osób biegnących ulicą",
    "typy": [
     "LUDZIE",
     "PANIKA"
    ],
    "scenariusze": [],
    "osoby": 6,
-   "opis": "Grupa osób biegnących ulicą",
    "autor": "Deans Charbal",
    "licencja": "CC BY-SA 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Summer_Streets_NYC_2023-08-19,_in_the_runners_crowd_on_Park_Av_and_56th,_Manhattan,_New_York.jpg",
-   "tytul": "File:Summer Streets NYC 2023-08-19, in the runners crowd on Park Av and 56th, Manhattan, New York.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Summer_Streets_NYC_2023-08-19,_in_the_runners_crowd_on_Park_Av_and_56th,_Manhattan,_New_York.jpg"
   },
   {
-   "plik": "panika-0.jpg",
+   "plik": "biegnaca-grupa-osob.jpg",
+   "opis": "Biegnąca grupa osób",
    "typy": [
     "PANIKA"
    ],
    "scenariusze": [],
    "osoby": 7,
-   "opis": "Biegnąca grupa osób",
    "autor": "Peter van der Sluijs",
    "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:A_lot_of_people_running.JPG",
-   "tytul": "File:A lot of people running.JPG"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:A_lot_of_people_running.JPG"
   },
   {
-   "plik": "pomoc-3.jpg",
+   "plik": "cwiczenia-ratownicy-przy-poszkodowanym.jpg",
+   "opis": "Ratownicy przy osobie poszkodowanej (ćwiczenia)",
    "typy": [
     "POMOC"
    ],
    "scenariusze": [],
    "osoby": 6,
-   "opis": "Ratownicy przy osobie poszkodowanej (ćwiczenia)",
    "autor": "Klapka paradaja",
    "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_05.jpg",
-   "tytul": "File:XII Manewry Ratownicze - first aid training (2025) 05.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_05.jpg"
   },
   {
-   "plik": "pomoc-5.jpg",
+   "plik": "cwiczenia-ewakuacja-poszkodowanego.jpg",
+   "opis": "Ewakuacja osoby poszkodowanej (ćwiczenia)",
    "typy": [
     "POMOC"
    ],
    "scenariusze": [],
    "osoby": 9,
-   "opis": "Ewakuacja osoby poszkodowanej (ćwiczenia)",
    "autor": "Klapka paradaja",
    "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_14.jpg",
-   "tytul": "File:XII Manewry Ratownicze - first aid training (2025) 14.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_14.jpg"
   },
   {
-   "plik": "pomoc-2.jpg",
+   "plik": "cwiczenia-grupa-ratownikow.jpg",
+   "opis": "Grupa ratowników przy poszkodowanym (ćwiczenia)",
    "typy": [
     "POMOC"
    ],
    "scenariusze": [],
    "osoby": 6,
-   "opis": "Grupa ratowników przy poszkodowanym (ćwiczenia)",
    "autor": "Klapka paradaja",
    "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_04.jpg",
-   "tytul": "File:XII Manewry Ratownicze - first aid training (2025) 04.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:XII_Manewry_Ratownicze_-_first_aid_training_(2025)_04.jpg"
   },
   {
-   "plik": "pozar-1.jpg",
+   "plik": "pozar-stodoly.jpg",
+   "opis": "Pożar traw przy zabudowaniu",
    "typy": [
     "POZAR"
    ],
    "scenariusze": [
-    "pozar"
+    "pozar:las"
    ],
    "osoby": 0,
-   "opis": "Pożar traw przy zabudowaniu",
    "autor": "Rafał T",
    "licencja": "CC BY-SA 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:%C5%BBd%C5%BCary,_2012-_Po%C5%BCar_stodo%C5%82y_-_fotopolska.eu_(299122).jpg",
-   "tytul": "File:Żdżary, 2012- Pożar stodoły - fotopolska.eu (299122).jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:%C5%BBd%C5%BCary,_2012-_Po%C5%BCar_stodo%C5%82y_-_fotopolska.eu_(299122).jpg"
   },
   {
-   "plik": "pozar-2.jpg",
+   "plik": "pozar-budynku-woz-strazacki.jpg",
+   "opis": "Zadymienie, wóz strażacki na miejscu",
    "typy": [
     "POZAR"
    ],
    "scenariusze": [],
    "osoby": 0,
-   "opis": "Zadymienie, wóz strażacki na miejscu",
    "autor": "Ktkvtsh",
    "licencja": "CC BY 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Structure_Fire_in_Union,_Mississippi_01.jpg",
-   "tytul": "File:Structure Fire in Union, Mississippi 01.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Structure_Fire_in_Union,_Mississippi_01.jpg"
   },
   {
-   "plik": "pozar-4.jpg",
+   "plik": "strazacy-przy-plonacym-domu.jpg",
+   "opis": "Strażacy przy płonącym domu",
    "typy": [
     "POZAR"
    ],
    "scenariusze": [],
    "osoby": 5,
-   "opis": "Strażacy przy płonącym domu",
    "autor": "Kiwiz1338",
    "licencja": "CC BY 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:New_Zealand_firefighters_outside_a_house_fire_in_Palmerston_North,_2019.jpg",
-   "tytul": "File:New Zealand firefighters outside a house fire in Palmerston North, 2019.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:New_Zealand_firefighters_outside_a_house_fire_in_Palmerston_North,_2019.jpg"
   },
   {
-   "plik": "wypadek-0.jpg",
+   "plik": "kolizja-na-skrzyzowaniu.jpg",
+   "opis": "Kolizja na skrzyżowaniu, osoby przy pojazdach",
    "typy": [
     "WYPADEK"
    ],
    "scenariusze": [],
    "osoby": 10,
-   "opis": "Kolizja na skrzyżowaniu, osoby przy pojazdach",
    "autor": "Alina Zienowicz Ala z",
    "licencja": "CC BY 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(1).JPG",
-   "tytul": "File:POL Warszawa Grochowska Krypska wypadek 2009-02-02 (1).JPG"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(1).JPG"
   },
   {
-   "plik": "wypadek-2.jpg",
+   "plik": "miejsce-wypadku-sluzby.jpg",
+   "opis": "Miejsce wypadku, służby i świadkowie",
    "typy": [
     "WYPADEK"
    ],
    "scenariusze": [],
    "osoby": 12,
-   "opis": "Miejsce wypadku, służby i świadkowie",
    "autor": "Alina Zienowicz Ala z",
    "licencja": "CC BY 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(4).JPG",
-   "tytul": "File:POL Warszawa Grochowska Krypska wypadek 2009-02-02 (4).JPG"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(4).JPG"
   },
   {
-   "plik": "wypadek-6.jpg",
+   "plik": "rozbity-autobus.jpg",
+   "opis": "Rozbity autobus",
    "typy": [
     "WYPADEK"
    ],
    "scenariusze": [],
    "osoby": 2,
-   "opis": "Rozbity autobus",
    "autor": "Szmyk",
    "licencja": "CC BY-SA 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Wypadek_autobusu.jpg",
-   "tytul": "File:Wypadek autobusu.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Wypadek_autobusu.jpg"
   },
   {
-   "plik": "wypadek-3.jpg",
+   "plik": "przewrocona-ciezarowka.jpg",
+   "opis": "Przewrócona ciężarówka na jezdni",
    "typy": [
     "WYPADEK"
    ],
    "scenariusze": [],
    "osoby": 0,
-   "opis": "Przewrócona ciężarówka na jezdni",
    "autor": "Sssine21",
    "licencja": "CC0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Wypadek_tira.jpg",
-   "tytul": "File:Wypadek tira.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Wypadek_tira.jpg"
   },
   {
-   "plik": "wypadek-1.jpg",
+   "plik": "zablokowana-ulica-po-wypadku.jpg",
+   "opis": "Zablokowana ulica po zdarzeniu",
    "typy": [
     "ZATOR"
    ],
    "scenariusze": [],
    "osoby": 12,
-   "opis": "Zablokowana ulica po zdarzeniu",
    "autor": "Alina Zienowicz Ala z",
    "licencja": "CC BY 3.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(2).JPG",
-   "tytul": "File:POL Warszawa Grochowska Krypska wypadek 2009-02-02 (2).JPG"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:POL_Warszawa_Grochowska_Krypska_wypadek_2009-02-02_(2).JPG"
   },
   {
-   "plik": "zator-0.jpg",
+   "plik": "korek-widok-z-powietrza.jpg",
+   "opis": "Zator na drodze — widok z powietrza",
    "typy": [
     "ZATOR"
    ],
    "scenariusze": [],
    "osoby": 0,
-   "opis": "Zator na drodze — widok z powietrza",
    "autor": "Chris",
    "licencja": "CC BY-SA 2.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Traffic_jam,_A14_westbound,_south_of_Molesworth,_aerial_2014_-_geograph.org.uk_-_4035584.jpg",
-   "tytul": "File:Traffic jam, A14 westbound, south of Molesworth, aerial 2014 - geograph.org.uk - 4035584.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Traffic_jam,_A14_westbound,_south_of_Molesworth,_aerial_2014_-_geograph.org.uk_-_4035584.jpg"
   },
   {
-   "plik": "zagrozenie-0.jpg",
+   "plik": "niewybuch-bomba-lotnicza.jpg",
+   "opis": "Niewybuch (bomba lotnicza) odsłonięty w gruncie",
    "typy": [
     "ZAGROZENIE"
    ],
    "scenariusze": [],
    "osoby": 0,
-   "opis": "Niewybuch (bomba lotnicza) odsłonięty w gruncie",
    "autor": "Holger Weinandt",
    "licencja": "CC BY-SA 3.0 de",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Fundort_Luftmine_06_Koblenz_2011.jpg",
-   "tytul": "File:Fundort Luftmine 06 Koblenz 2011.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Fundort_Luftmine_06_Koblenz_2011.jpg"
   },
   {
-   "plik": "zagrozenie-4.jpg",
+   "plik": "odgrodzony-teren-sluzby.jpg",
+   "opis": "Odgrodzony teren, służby na miejscu",
    "typy": [
     "ZAGROZENIE"
    ],
    "scenariusze": [],
    "osoby": 2,
-   "opis": "Odgrodzony teren, służby na miejscu",
    "autor": "David Dixon",
    "licencja": "CC BY-SA 2.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Police_Cordon,_Bury_Road_-_geograph.org.uk_-_3097220.jpg",
-   "tytul": "File:Police Cordon, Bury Road - geograph.org.uk - 3097220.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Police_Cordon,_Bury_Road_-_geograph.org.uk_-_3097220.jpg"
   },
   {
-   "plik": "zagrozenie-1.jpg",
+   "plik": "niewybuch-zamknieta-ulica.jpg",
+   "opis": "Zamknięta ulica — strefa zagrożenia",
    "typy": [
     "ZAGROZENIE"
    ],
    "scenariusze": [],
    "osoby": 1,
-   "opis": "Zamknięta ulica — strefa zagrożenia",
    "autor": "Kestrel",
    "licencja": "CC BY-SA 4.0",
-   "zrodlo": "https://commons.wikimedia.org/wiki/File:Unexploded_Ordnance_Disposal_in_Ariake,_Tokyo,_on_June_5,_2019_P6059117.jpg",
-   "tytul": "File:Unexploded Ordnance Disposal in Ariake, Tokyo, on June 5, 2019 P6059117.jpg"
+   "zrodlo": "https://commons.wikimedia.org/wiki/File:Unexploded_Ordnance_Disposal_in_Ariake,_Tokyo,_on_June_5,_2019_P6059117.jpg"
   }
  ]
 }
