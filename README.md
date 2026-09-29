@@ -1,8 +1,8 @@
-# Hermes 🏛️
+# Hermes 
 
 ![Hermes Icon](https://github.com/jabaldoo/Hermes/blob/main/hermes.png)
 
-Hermes is an advanced AI-powered system designed for intelligent data processing and analysis.
+Nie będę robił w konia Hermes to...
 
 ## Installation
 
