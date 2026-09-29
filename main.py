@@ -20,7 +20,8 @@ from starlette.requests import Request
 import data_sources
 import db
 import simulator
-from anonymizer import TRYBY_DOZWOLONE, klatka_na_jpeg_bytes, wczytaj_tryb_z_env
+import czk_logic
+from anonymizer import TRYBY_DOZWOLONE, anonimizuj_klatke, klatka_na_jpeg_bytes, wczytaj_tryb_z_env
 from edge_ai import przetworz_klatke_na_pokladzie
 
 load_dotenv()
@@ -150,26 +151,112 @@ async def api_glos(dron_id: str):
         raise HTTPException(404, "Dron niedostepny")
     if d["tryb"] != "aktywny":
         raise HTTPException(400, "Dron pasywny nie ma glosnika")
-    sektor = _sym()._sektor_dla(d["lat"], d["lon"]) or "C3"
-    _sym()._komunikat(d, sektor)
+    _sym().komunikat_reczny(dron_id)
     await _sym().wyslij()
-    return {"dron": dron_id, "sektor": sektor}
+    return {"dron": dron_id}
 
 
-# ---------------------------------------------------------------- CZK: rekomendacje i dysponowanie
-
-@app.get("/api/rekomendacje")
-async def api_rekomendacje():
-    return _sym().rekomendacje()
-
-
-@app.post("/api/dysponuj/{sektor}")
-async def api_dysponuj(sektor: str):
-    wynik = _sym().dysponuj(sektor)
-    if wynik is None:
-        raise HTTPException(409, "Sektor bez zagrozenia lub juz w realizacji")
+@app.post("/api/sym/stacja/{stacja_id}")
+async def api_stacja(stacja_id: str):
+    if stacja_id not in _sym().stacje:
+        raise HTTPException(404, "Nieznana stacja")
+    _sym().przelacz_stacje(stacja_id)
     await _sym().wyslij()
-    return wynik
+    return {"stacja": stacja_id, "zywa": _sym().stacje[stacja_id]["zywa"]}
+
+
+# ---------------------------------------------------------------- CZK: zgloszenia i decyzje operatora
+
+@app.get("/api/incydenty")
+async def api_incydenty():
+    return _sym().incydenty_publiczne()
+
+
+@app.post("/api/decyzja/{inc_id}/{akcja}")
+async def api_decyzja(inc_id: int, akcja: str):
+    if akcja not in ("dron", "sluzby", "odrzuc"):
+        raise HTTPException(400, "Dozwolone: dron, sluzby, odrzuc")
+    if not _sym().decyzja(inc_id, akcja):
+        raise HTTPException(409, "Zgloszenie zamkniete lub decyzja juz podjeta")
+    await _sym().wyslij()
+    return {"incydent": inc_id, "akcja": akcja}
+
+
+_zdjecia_cache = {}
+
+
+@app.get("/api/zdjecie/{plik}")
+def api_zdjecie(plik: str):
+    """
+    Zdjecie zgloszenia dla operatora. Twarze sa anonimizowane (jak na pokladzie BSP) zanim obraz
+    opusci serwer; plik wybierany wylacznie z katalogu (brak dostepu do dowolnych sciezek).
+    """
+    wpis = next((z for z in _sym().katalog_zdjec if z["plik"] == plik), None)
+    if wpis is None:
+        raise HTTPException(404, "Brak zdjecia")
+    tryb = wczytaj_tryb_z_env()
+    if (plik, tryb) not in _zdjecia_cache:
+        klatka = cv2.imread(os.path.join(TUTAJ, "data", "zdjecia", wpis["plik"]))
+        if klatka is None:
+            raise HTTPException(404, "Brak zdjecia")
+        zanonimizowana, _ = anonimizuj_klatke(klatka, tryb=tryb)
+        _zdjecia_cache[(plik, tryb)] = klatka_na_jpeg_bytes(zanonimizowana)
+    return Response(_zdjecia_cache[(plik, tryb)], media_type="image/jpeg",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+# ---------------------------------------------------------------- analiza testow z ludnoscia
+
+def _proc(a, b):
+    return round(100 * a / b, 1) if b else None
+
+
+def _agreguj(wpisy):
+    prow = [w for w in wpisy if w["typ"] != "KOMUNIKAT"]
+    kom = [w for w in wpisy if w["typ"] == "KOMUNIKAT"]
+
+    def podsumuj(p, k):
+        czasy = [w["czas_s"] for w in p if w["czas_s"] is not None]
+        return {
+            "ewakuacje": len(p),
+            "powiadomieni": sum(w["powiadomieni"] for w in p),
+            "podazyli": sum(w["podazyli"] for w in p),
+            "w_schronie": sum(w["w_schronie"] or 0 for w in p),
+            "podazanie_proc": _proc(sum(w["podazyli"] for w in p), sum(w["powiadomieni"] for w in p)),
+            "dotarcie_proc": _proc(sum(w["w_schronie"] or 0 for w in p), sum(w["powiadomieni"] for w in p)),
+            "sr_czas_s": round(sum(czasy) / len(czasy)) if czasy else None,
+            "komunikaty": len(k),
+            "reakcja_proc": _proc(sum(w["podazyli"] for w in k), sum(w["powiadomieni"] for w in k)),
+        }
+
+    wg_rodzaju = {r: podsumuj([w for w in prow if w["rodzaj"] == r], [w for w in kom if w["rodzaj"] == r])
+                  for r in ("realne", "ćwiczenie")}
+    wg_typu = {f"{r}|{t}": _proc(sum(w["podazyli"] for w in prow if w["rodzaj"] == r and w["typ"] == t),
+                                 sum(w["powiadomieni"] for w in prow if w["rodzaj"] == r and w["typ"] == t))
+               for r in ("realne", "ćwiczenie") for t in ("LUDZIE", "PANIKA")}
+    return {"razem": podsumuj(prow, kom), "wg_rodzaju": wg_rodzaju, "wg_typu": wg_typu, "ostatnie": wpisy[:30]}
+
+
+@app.get("/api/analiza")
+async def api_analiza():
+    return _agreguj(db.pobierz_ewakuacje())
+
+
+@app.post("/api/analiza/wyczysc")
+async def api_analiza_wyczysc():
+    db.wyczysc_ewakuacje()
+    return {"ok": True}
+
+
+@app.get("/api/eksport/ewakuacje.csv")
+async def eksport_ewakuacji():
+    wpisy = db.pobierz_ewakuacje(limit=100000)
+    bufor = io.StringIO()
+    pisarz = csv.DictWriter(bufor, fieldnames=["id", *db.KOLUMNY_EWAKUACJI])
+    pisarz.writeheader()
+    pisarz.writerows(wpisy)
+    return StreamingResponse(io.BytesIO(bufor.getvalue().encode("utf-8-sig")), media_type="text/csv",
+                             headers={"Content-Disposition": "attachment; filename=hermes_testy_ewakuacji.csv"})
 
 
 # ---------------------------------------------------------------- stan (odczyt z bazy)
@@ -248,14 +335,26 @@ async def api_schrony():
 @app.get("/api/warstwy")
 async def api_warstwy():
     m = _sym().mock
+    stacje = m["stacje"]
+    osiedla = []
+    for o in data_sources.pobierz_osiedla()["osiedla"]:
+        # region stacji = osiedla, ktorych srodek lezy najblizej danej stacji
+        stacja = min(stacje, key=lambda s: czk_logic.odleglosc_km(o["centrum"][0], o["centrum"][1], s["lat"], s["lon"]))
+        osiedla.append({"nazwa": o["nazwa"], "polygon": o["polygon"], "stacja": stacja["id"]})
+    strefy = data_sources.pobierz_strefy_wojskowe()
     return {
         "sektory": m["sektory"],
         "baza": m["baza"],
-        "jednostki": m["jednostki"],
+        "stacje": stacje,
+        "osiedla": osiedla,
         "odra": m["hydrografia_mock"]["odra"],
         "strefa_zalewowa": m["hydrografia_mock"]["strefa_zalewowa"],
         "las": m["lasy_bdl_mock"]["las"],
         "ogniska": m["lasy_bdl_mock"]["ogniska"],
+        "strefy_zakazane": strefy["strefy"],
+        "strefy_zrodlo": strefy.get("zrodlo", ""),
+        "budynki": data_sources.pobierz_budynki()["budynki"],
+        "zasieg_km": simulator.ZASIEG_MESH_KM,
         "scenariusze": {k: v["nazwa"] for k, v in m["scenariusze"].items()},
     }
 

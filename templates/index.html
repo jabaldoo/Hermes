@@ -9,14 +9,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body data-orto-wmts="{{ orto_wmts }}" data-prg-wms="{{ prg_wms }}">
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="kreski-strefy" patternUnits="userSpaceOnUse" width="9" height="9" patternTransform="rotate(45)">
+      <rect width="9" height="9" fill="rgba(255,51,85,0.10)"/>
+      <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(255,51,85,0.6)" stroke-width="2.5"/>
+    </pattern>
+  </defs>
+</svg>
+
 <div id="mapa"></div>
 <div class="winieta"></div>
+<div id="zgloszenie" class="zgloszenie" hidden></div>
+<button id="zg-pigulka" class="zg-pigulka" hidden></button>
 
 <!-- ============================================================ PASEK GORNY -->
 <header class="topbar panel">
@@ -37,8 +47,10 @@
     <span class="znacznik-sym" title="Wszystkie zdarzenia są symulowane"><i></i>SYMULACJA</span>
     <div class="segment" id="seg-scenariusz" role="group" aria-label="Scenariusz">
       <button data-scen="patrol" title="Klawisz 1">Patrol</button>
-      <button data-scen="powodz" title="Klawisz 2">Powódź · Odra</button>
+      <button data-scen="powodz" title="Klawisz 2">Powódź</button>
       <button data-scen="pozar" title="Klawisz 3">Pożar lasu</button>
+      <button data-scen="alarm" title="Klawisz 4 — realne zagrożenie">Alarm OC</button>
+      <button data-scen="cwiczenia" title="Klawisz 5 — ćwiczenia">Alarm próbny</button>
     </div>
     <div class="sterowanie">
       <button class="ikona" id="btn-pauza" title="Pauza / wznów (spacja)" aria-label="Pauza"></button>
@@ -60,46 +72,51 @@
   </div>
 </header>
 
-<!-- ============================================================ LEWA KOLUMNA -->
-<aside class="lewa">
-  <section class="panel karta" id="karta-misja">
-    <div class="karta-naglowek"><h3>Misja</h3><span class="tag" id="misja-tag">—</span></div>
+<!-- ============================================================ LEWY PANEL (jedna calosc) -->
+<aside class="lewa panel">
+  <section class="sekcja">
+    <div class="sekcja-naglowek"><h3>Misja</h3><span class="tag" id="misja-tag">—</span></div>
     <div class="misja-nazwa" id="misja-nazwa">—</div>
     <p class="misja-opis" id="misja-opis"></p>
     <ol class="os-czasu" id="misja-kroki"></ol>
   </section>
 
-  <section class="panel karta">
-    <div class="karta-naglowek"><h3>Obraz sytuacji</h3><span class="tag">25 sektorów</span></div>
+  <section class="sekcja">
+    <div class="sekcja-naglowek"><h3>Obraz sytuacji</h3><span class="tag">25 sektorów</span></div>
     <div class="sytuacja">
       <div class="donut">
-        <canvas id="wykres" width="112" height="112"></canvas>
-        <div class="donut-srodek"><b id="kpi-zagrozone">0</b><span>zagrożone</span></div>
+        <canvas id="wykres" width="104" height="104"></canvas>
+        <div class="donut-srodek"><b id="kpi-zagrozone">0</b><span>sektorów</span></div>
       </div>
       <ul class="legenda-statusow" id="legenda-statusow"></ul>
     </div>
     <div class="kpi-siatka">
-      <div class="kpi"><b id="kpi-osoby">0</b><span>osób w strefach</span></div>
-      <div class="kpi"><b id="kpi-twarze">0</b><span>twarzy zanonim. (edge)</span></div>
-      <div class="kpi"><b id="kpi-realizacja">0</b><span>działań w toku</span></div>
-      <div class="kpi"><b id="kpi-mesh">0/0</b><span>węzłów w mesh</span></div>
+      <div class="kpi alarm"><b id="kpi-czeka">0</b><span>czeka na decyzję</span></div>
+      <div class="kpi"><b id="kpi-incydenty">0</b><span>aktywne zgłoszenia</span></div>
+      <div class="kpi"><b id="kpi-schron">0</b><span>doprowadzonych do schronu</span></div>
+      <div class="kpi"><b id="kpi-zrzuty">0</b><span>zrzutów apteczek</span></div>
+      <div class="kpi"><b id="kpi-mesh">0/0</b><span>drony w sieci mesh</span></div>
+      <div class="kpi"><b id="kpi-stacje">0/0</b><span>stacje-przekaźniki</span></div>
     </div>
   </section>
 
-  <section class="panel karta">
-    <div class="karta-naglowek"><h3>Warstwy</h3></div>
+  <section class="sekcja">
+    <div class="sekcja-naglowek"><h3>Warstwy</h3></div>
     <div class="warstwy-bazowe" role="radiogroup" aria-label="Mapa bazowa">
       <label><input type="radio" name="baza" value="orto" checked><span>Ortofoto</span></label>
       <label><input type="radio" name="baza" value="ciemna"><span>Ciemna</span></label>
       <label><input type="radio" name="baza" value="osm"><span>OSM</span></label>
     </div>
     <div class="przelaczniki">
+      <label><input type="checkbox" id="w-ulice" checked><i></i>Nazwy ulic (od zoomu 15)</label>
       <label><input type="checkbox" id="w-sektory" checked><i></i>Siatka sektorów</label>
-      <label><input type="checkbox" id="w-heat" checked><i></i>Mapa ciepła (osoby)</label>
+      <label><input type="checkbox" id="w-regiony" checked><i></i>Regiony stacji (osiedla)</label>
+      <label><input type="checkbox" id="w-zasieg"><i></i>Zasięg stacji</label>
       <label><input type="checkbox" id="w-mesh" checked><i></i>Sieć mesh</label>
-      <label><input type="checkbox" id="w-schrony" checked><i></i>Schrony KG PSP <em id="liczba-schronow"></em></label>
+      <label title="Po oddaleniu widoczne tylko schrony całodobowe; przybliż (zoom 14+), aby zobaczyć wszystkie"><input type="checkbox" id="w-schrony" checked><i></i>Schrony KG PSP <em id="liczba-schronow"></em></label>
+      <label><input type="checkbox" id="w-strefy" checked><i></i>Strefy zakazu lotów (wojsk.)</label>
+      <label><input type="checkbox" id="w-budynki" checked><i></i>Wysokie budynki ≥ 40 m <em id="liczba-budynkow"></em></label>
       <label><input type="checkbox" id="w-scen" checked><i></i>Warstwy scenariusza</label>
-      <label><input type="checkbox" id="w-jednostki" checked><i></i>Jednostki (przykładowe)</label>
       <label><input type="checkbox" id="w-prg"><i></i>Granice gmin (PRG)</label>
     </div>
   </section>
@@ -109,8 +126,9 @@
 <aside class="prawa panel">
   <nav class="zakladki" role="tablist">
     <button class="aktywna" data-tab="zdarzenia">Zdarzenia</button>
-    <button data-tab="decyzje">Decyzje <span class="licznik" id="licznik-decyzji" hidden>0</span></button>
+    <button data-tab="incydenty">Zgłoszenia <span class="licznik" id="licznik-inc" hidden>0</span></button>
     <button data-tab="flota">Flota</button>
+    <button data-tab="analiza">Analiza</button>
     <button data-tab="rodo">RODO</button>
     <button data-tab="dane">Dane</button>
   </nav>
@@ -120,7 +138,8 @@
       <div class="filtry" id="filtry">
         <button class="aktywny" data-f="wszystkie">Wszystkie</button>
         <button data-f="wykrycia">Wykrycia</button>
-        <button data-f="dzialania">Działania</button>
+        <button data-f="sluzby">Decyzje</button>
+        <button data-f="ludzie">Ewakuacja</button>
         <button data-f="mesh">Mesh</button>
         <button data-f="system">System</button>
       </div>
@@ -132,25 +151,48 @@
     <ol class="feed" id="feed" data-filtr="wszystkie"></ol>
   </section>
 
-  <section class="tab" id="tab-decyzje">
-    <div class="decyzje-gora">
-      <div class="reguly">
-        <span><i class="kropka st-POMOC"></i>POMOC → ZRM + PSP</span>
-        <span><i class="kropka st-LUDZIE"></i>LUDZIE → OSP + PSP</span>
-        <span><i class="kropka st-ZATOR"></i>ZATOR → Policja</span>
-      </div>
-      <button class="btn-glowny" id="btn-rekomenduj">Rekomenduj akcję</button>
-    </div>
-    <div id="lista-rek" class="lista-rek"><p class="pusto">Naciśnij „Rekomenduj akcję”, aby CZK oceniło bieżący obraz sytuacji.</p></div>
+  <section class="tab" id="tab-incydenty">
+    <p class="podpowiedz">Drony zgłaszają zdarzenia <b>operatorowi</b> — ze zdjęciem (twarze zanonimizowane) i współrzędnymi. Nic nie jest wysyłane automatycznie: operator decyduje, czy <b>wysłać drona</b>, <b>przekazać zgłoszenie służbom</b>, czy je <b>odrzucić</b>.</p>
+    <div id="lista-inc" class="lista-inc"><p class="pusto">Brak zgłoszeń — rój patroluje.</p></div>
   </section>
 
   <section class="tab" id="tab-flota">
-    <p class="podpowiedz">Symuluj awarię węzła, aby zobaczyć samonaprawę sieci mesh i buforowanie danych (store-and-forward).</p>
+    <div class="sekcja-naglowek"><h3>Stacje-przekaźniki (range extenders)</h3></div>
+    <p class="podpowiedz">Każda stacja to antena sieci mesh i baza ładowania dronów dla swojego regionu (osiedla). Awaria stacji — drony przełączają się na sąsiednie węzły.</p>
+    <div id="lista-stacji" class="lista-stacji"></div>
+    <div class="sekcja-naglowek mt"><h3>Drony</h3></div>
+    <p class="podpowiedz">Każdy BSP ma małą apteczkę do zrzutu. Symuluj awarię drona, aby zobaczyć samonaprawę sieci mesh.</p>
     <div id="lista-flota" class="lista-flota"></div>
   </section>
 
+  <section class="tab" id="tab-analiza">
+    <p class="podpowiedz">Dane z testów BSP z udziałem mieszkańców: czy ludzie <b>posłuchali komunikatów</b> i <b>poszli za dronem do schronu</b>. Dane zostają między scenariuszami — uruchom „Alarm OC” i „Alarm próbny”, aby porównać realne zagrożenie z ćwiczeniami.</p>
+    <div class="kpi-siatka kpi-4">
+      <div class="kpi"><b id="an-ewak">0</b><span>ewakuacji grup</span></div>
+      <div class="kpi"><b id="an-podazanie">—</b><span>podążyło za dronem</span></div>
+      <div class="kpi"><b id="an-dotarcie">—</b><span>dotarło do schronu</span></div>
+      <div class="kpi"><b id="an-czas">—</b><span>śr. czas ewakuacji</span></div>
+    </div>
+    <div class="karta-wykresu">
+      <div class="karta-wykresu-naglowek"><span>Realne zagrożenie vs alarm próbny</span>
+        <span class="legenda-mini"><i style="background:#ff3355"></i>realne <i style="background:#45e3ff"></i>ćwiczenia</span></div>
+      <div class="wykres-kontener"><canvas id="wykres-analiza"></canvas></div>
+    </div>
+    <table class="tabela" id="tabela-typow">
+      <thead><tr><th>Podążanie za dronem</th><th>Realne</th><th>Ćwiczenia</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="sekcja-naglowek mt"><h3>Ostatnie testy</h3>
+      <div class="eksport"><a href="/api/eksport/ewakuacje.csv" download>CSV</a><button id="btn-wyczysc">Wyczyść</button></div>
+    </div>
+    <table class="tabela" id="tabela-ewak">
+      <thead><tr><th>Czas</th><th>Test</th><th>Sektor</th><th>Wynik</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
   <section class="tab" id="tab-rodo">
-    <p class="podpowiedz">Anonimizacja działa <b>na pokładzie BSP</b>, zanim cokolwiek opuści drona. Do CZK trafiają wyłącznie metadane. Poniżej prawdziwy pipeline edge AI (OpenCV) uruchomiony na klatce testowej.</p>
+    <p class="podpowiedz">Anonimizacja działa <b>na pokładzie BSP</b>, zanim cokolwiek opuści drona. Operator widzi tylko <b>zanonimizowane zdjęcie</b> zgłoszenia; do bazy i eksportu trafiają wyłącznie metadane. Poniżej prawdziwy pipeline edge AI (OpenCV) uruchomiony na klatce testowej.</p>
     <div class="segment pelny" id="seg-anon">
       <button data-tryb="blur" class="aktywny">Rozmycie</button>
       <button data-tryb="pixel">Pikselizacja</button>
@@ -164,15 +206,19 @@
       <span class="et et-l">ORYGINAŁ · zostaje na BSP</span>
       <span class="et et-r">PO ANONIMIZACJI</span>
     </div>
-    <div class="pakiet">
-      <div class="pakiet-naglowek"><span>Pakiet BSP → CZK</span><span id="pakiet-rozmiar"></span></div>
-      <pre id="pakiet-json">—</pre>
+    <div class="sekcja-naglowek"><h3>Co trafia do CZK</h3></div>
+    <div class="kpi-siatka kpi-4" id="rodo-pakiet">
+      <div class="kpi"><b id="rp-status">—</b><span>status</span></div>
+      <div class="kpi"><b id="rp-osoby">—</b><span>liczba osób</span></div>
+      <div class="kpi"><b id="rp-pewnosc">—</b><span>pewność</span></div>
+      <div class="kpi ok"><b>0 B</b><span>obrazu w bazie</span></div>
     </div>
     <ul class="zasady">
-      <li>Detekcja twarzy (Haar) + osób (HOG) na pokładzie, obraz nigdy nie jest wysyłany.</li>
-      <li>W logach tylko licznik zanonimizowanych twarzy — bez pozycji i identyfikatorów.</li>
-      <li>Test jednostkowy: po anonimizacji detektor zwraca 0 twarzy (3 tryby).</li>
-      <li>Baza i eksport nie mają pola na obraz — test <code>tests/test_rodo.py</code>.</li>
+      <li>Twarze (Haar) i sylwetki (HOG) wykrywane na pokładzie; do operatora trafia tylko zdjęcie z zamazanymi twarzami.</li>
+      <li>Zdjęcia zgłoszeń nie są zapisywane w bazie ani w eksporcie JSON/CSV.</li>
+      <li>W logach tylko licznik zanonimizowanych twarzy, bez pozycji i identyfikatorów osób.</li>
+      <li>Dane z testów ewakuacji to wyłącznie liczby osób, bez żadnych danych osobowych.</li>
+      <li>Testy automatyczne potwierdzają: po anonimizacji detektor nie znajduje twarzy.</li>
     </ul>
   </section>
 
@@ -186,7 +232,7 @@
       <thead><tr><th>Źródło</th><th>Użycie</th></tr></thead>
       <tbody></tbody>
     </table>
-    <p class="atrybucja">Źródłem pochodzenia danych meteorologicznych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Ortofotomapa i PRG: © GUGiK. Punkty schronienia: KG PSP, dane.gov.pl (CC BY 4.0). Zdarzenia, drony i jednostki na mapie są fikcyjne.</p>
+    <p class="atrybucja">Źródłem pochodzenia danych meteorologicznych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Ortofotomapa i PRG: © GUGiK. Punkty schronienia: KG PSP, dane.gov.pl (CC BY 4.0). Budynki, tereny wojskowe i osiedla: © współtwórcy OpenStreetMap (ODbL); strefy zakazu lotów to model (obrys terenu wojskowego + bufor 250 m) — oficjalne strefy: dronemap.pansa.pl. Nazwy ulic: © OpenStreetMap, © CARTO. Zdjęcia zgłoszeń: Wikimedia Commons (autorzy i licencje przy zdjęciach). Zdarzenia, drony i stacje na mapie są fikcyjne.</p>
   </section>
 </aside>
 
@@ -202,7 +248,7 @@
     <li><i></i><span>Decyzja</span></li>
     <li><i></i><span>Działanie</span></li>
   </ol>
-  <div class="ostatni-pakiet"><span>ostatni pakiet</span><code id="ostatni-pakiet">oczekiwanie na metadane z roju…</code></div>
+  <div class="ostatni-pakiet"><span class="pakiet-et">ostatni pakiet</span><div id="ostatni-pakiet" class="pakiet-chipy">oczekiwanie na metadane z roju…</div></div>
 </footer>
 
 <div id="toasty" aria-live="polite"></div>

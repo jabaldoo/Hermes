@@ -1,42 +1,79 @@
-# czk_logic.py - reguly rekomendacji dzialan dla Centrum Zarzadzania Kryzysowego (CZK).
-# Proste i deterministyczne - latwe do wytlumaczenia jury i do audytu decyzji.
+# czk_logic.py - reguly CZK: typy incydentow -> sluzby (Policja / PSP / ZRM), priorytety,
+# format wspolrzednych dla sluzb oraz wybor najblizszych schronow.
 import math
 
-STATUSY = ("OK", "LUDZIE", "ZATOR", "POMOC")
+# prowadzenie = dron z glosnikiem prowadzi ludzi do schronu; komunikat = natychmiastowe ostrzezenie
+TYPY = {
+    "POMOC":      {"nazwa": "Osoby poszkodowane / uwięzione", "sluzby": ["ZRM", "PSP"], "priorytet": 1},
+    "WYPADEK":    {"nazwa": "Wypadek drogowy", "sluzby": ["Policja", "ZRM", "PSP"], "priorytet": 1},
+    "POZAR":      {"nazwa": "Pożar", "sluzby": ["PSP", "ZRM"], "priorytet": 1},
+    "ZAGROZENIE": {"nazwa": "Zagrożenie natychmiastowe", "sluzby": ["Policja", "PSP"], "priorytet": 1, "komunikat": True},
+    "PANIKA":     {"nazwa": "Panika w tłumie", "sluzby": ["Policja"], "priorytet": 2, "prowadzenie": True},
+    "LUDZIE":     {"nazwa": "Osoby w strefie zagrożenia", "sluzby": [], "priorytet": 2, "prowadzenie": True},
+    "ZATOR":      {"nazwa": "Zator / zablokowana droga", "sluzby": ["Policja"], "priorytet": 3},
+}
+STATUSY = ("OK",) + tuple(TYPY)
+NAZWY_SLUZB = {"Policja": "Policja", "PSP": "Straż Pożarna (PSP)", "ZRM": "Pogotowie (ZRM)"}
 
-_REGULY = {
-    "POMOC": {"jednostki": ["Karetka", "PSP"], "priorytet": 1,
-              "opis": "Osoby poszkodowane / uwięzione — natychmiastowa pomoc."},
-    "LUDZIE": {"jednostki": ["OSP", "PSP"], "priorytet": 2,
-               "opis": "Osoby w strefie zagrożenia — ewakuacja do miejsca schronienia."},
-    "ZATOR": {"jednostki": ["Policja"], "priorytet": 3,
-              "opis": "Zator utrudniający ewakuację i dojazd służb — udrożnienie, objazd."},
-    "OK": {"jednostki": [], "priorytet": 4, "opis": "Brak zagrożenia w sektorze."},
+# Zaopatrzenie medyczne zrzucane przez BSP - wg typu incydentu, w kolejnosci waznosci
+ZAOPATRZENIE_WG_TYPU = {
+    "POMOC": ["Opaska uciskowa", "Opatrunek hemostatyczny", "Koc termiczny NRC", "Chusta trójkątna"],
+    "WYPADEK": ["Opatrunek hemostatyczny", "Koc termiczny NRC", "Bandaż elastyczny", "Opaska uciskowa"],
+    "POZAR": ["Żel na oparzenia", "Koc termiczny NRC", "Woda 0,33 l", "Maseczka do RKO"],
 }
 
-# Kara (w km) dla schronow niedostepnych calodobowo - przy ewakuacji liczy sie pewny dostep.
 _KARA_DOSTEPNOSCI_KM = 0.4
 
 
-def rekomenduj_akcje(status_sektora, sektor_id=None, liczba_osob=0):
-    regula = _REGULY.get(status_sektora, _REGULY["OK"])
+def rekomenduj_akcje(typ, sektor_id=None, liczba_osob=0):
+    t = TYPY.get(typ)
+    if t is None:
+        return {"sektor": sektor_id, "status": typ, "jednostki_rekomendowane": [], "priorytet": 9,
+                "opis": "Brak zagrożenia.", "prowadzenie": False, "liczba_osob": liczba_osob}
     return {
-        "sektor": sektor_id,
-        "status": status_sektora,
-        "jednostki_rekomendowane": regula["jednostki"],
-        "priorytet": regula["priorytet"],
-        "opis": regula["opis"],
-        "liczba_osob": liczba_osob,
+        "sektor": sektor_id, "status": typ, "opis": t["nazwa"],
+        "jednostki_rekomendowane": list(t["sluzby"]), "priorytet": t["priorytet"],
+        "prowadzenie": t.get("prowadzenie", False), "liczba_osob": liczba_osob,
     }
 
 
-def posortuj_rekomendacje_wg_priorytetu(lista_rekomendacji):
-    """Nizszy priorytet = pilniejsze; przy remisie wiecej osob wyzej."""
-    return sorted(lista_rekomendacji, key=lambda r: (r["priorytet"], -r.get("liczba_osob", 0)))
+_AKCJE_DRONA = {
+    "prowadzenie": "Wyślij drona z głośnikiem — poprowadzi ludzi do najbliższego schronu",
+    "zrzut": "Wyślij drona z apteczką — zrzut zaopatrzenia medycznego",
+    "ostrzezenie": "Wyślij drona z głośnikiem — ostrzeże ludzi w rejonie",
+    "obserwacja": "Wyślij drona do obserwacji miejsca zdarzenia",
+}
+
+
+def akcja_drona(typ, osoby):
+    """Co zrobi dron, jesli operator zdecyduje sie go wyslac. Zwraca (rodzaj, opis dla operatora)."""
+    if typ in ("LUDZIE", "PANIKA") and osoby > 0:
+        rodzaj = "prowadzenie"
+    elif typ in ZAOPATRZENIE_WG_TYPU and osoby > 0:
+        rodzaj = "zrzut"
+    elif typ == "ZAGROZENIE":
+        rodzaj = "ostrzezenie"
+    else:
+        rodzaj = "obserwacja"
+    return rodzaj, _AKCJE_DRONA[rodzaj]
+
+
+def posortuj_rekomendacje_wg_priorytetu(lista):
+    return sorted(lista, key=lambda r: (r["priorytet"], -r.get("liczba_osob", 0)))
+
+
+def status_sektora(typy_aktywne):
+    """Status sektora = najpilniejszy aktywny incydent w nim (albo OK)."""
+    if not typy_aktywne:
+        return "OK"
+    return min(typy_aktywne, key=lambda t: (TYPY[t]["priorytet"], list(TYPY).index(t)))
+
+
+def wspolrzedne_txt(lat, lon):
+    return f"{abs(lat):.5f}° {'N' if lat >= 0 else 'S'}, {abs(lon):.5f}° {'E' if lon >= 0 else 'W'}"
 
 
 def odleglosc_km(lat1, lon1, lat2, lon2):
-    """Odleglosc po kuli ziemskiej (haversine)."""
     r = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = p2 - p1, math.radians(lon2 - lon1)
@@ -44,15 +81,19 @@ def odleglosc_km(lat1, lon1, lat2, lon2):
     return 2 * r * math.asin(math.sqrt(a))
 
 
-def najblizsze_schrony(lat, lon, punkty, n=3):
-    """
-    Zwraca n najlepszych punktow schronienia KG PSP dla ewakuacji z punktu (lat, lon).
-    Preferowane sa obiekty dostepne calodobowo (pozostale dostaja kare odleglosci).
-    """
+def najblizsze_schrony(lat, lon, punkty, n=3, wyklucz=None):
+    """n najlepszych punktow schronienia KG PSP; obiekty calodobowe preferowane (kara odleglosci dla pozostalych)."""
     ocenione = []
     for p in punkty:
+        if wyklucz and wyklucz(p):
+            continue
         d = odleglosc_km(lat, lon, p["lat"], p["lon"])
         kara = 0.0 if p.get("dostepnosc") == "Całodobowa" else _KARA_DOSTEPNOSCI_KM
         ocenione.append((d + kara, d, p))
     ocenione.sort(key=lambda x: x[0])
     return [dict(p, odleglosc_km=round(d, 2)) for _, d, p in ocenione[:n]]
+
+
+def wybierz_zaopatrzenie(typ, zapas, maks=2):
+    """Ktore przedmioty dron zrzuca dla danego incydentu (po 1 szt., najwyzej `maks`)."""
+    return [p for p in ZAOPATRZENIE_WG_TYPU.get(typ, []) if zapas.get(p, 0) > 0][:maks]

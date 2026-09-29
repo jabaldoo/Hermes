@@ -33,6 +33,26 @@ def wykryj_ludzi(klatka_bgr):
     return prostokaty, wagi
 
 
+def ocen_panike(wektory_ruchu, prog_predkosci=2.5, prog_chaosu=0.55, predkosc_ucieczki=4.0):
+    """
+    Wykrywanie paniki na pokladzie: analiza wektorow ruchu sledzonych sylwetek (vx, vy w m/s).
+    Panika = szybki ruch w chaotycznych kierunkach (albo masowa ucieczka). Wynik to tylko liczby -
+    zadnej identyfikacji osob.
+    """
+    predkosci = [math.hypot(vx, vy) for vx, vy in wektory_ruchu]
+    if len(predkosci) < 3:
+        return {"panika": False, "predkosc": 0.0, "chaos": 0.0}
+    srednia = sum(predkosci) / len(predkosci)
+    kierunki = [(vx / p, vy / p) for (vx, vy), p in zip(wektory_ruchu, predkosci) if p > 0.1]
+    chaos = 0.0
+    if kierunki:
+        mx = sum(k[0] for k in kierunki) / len(kierunki)
+        my = sum(k[1] for k in kierunki) / len(kierunki)
+        chaos = 1 - math.hypot(mx, my)  # 0 = wszyscy w jedna strone, 1 = kazdy w inna
+    panika = (srednia > prog_predkosci and chaos > prog_chaosu) or srednia > predkosc_ucieczki
+    return {"panika": panika, "predkosc": round(srednia, 1), "chaos": round(chaos, 2)}
+
+
 def przetworz_klatke_na_pokladzie(klatka_bgr, tryb_anonimizacji=None):
     """
     Pelny pipeline edge AI wykonywany NA DRONIE:

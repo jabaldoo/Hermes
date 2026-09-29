@@ -8,6 +8,18 @@ import cv2
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from anonymizer import wykryj_twarze, zaanonimizuj, anonimizuj_klatke  # noqa: E402
+from edge_ai import ocen_panike  # noqa: E402
+
+
+def test_spokojny_marsz_to_nie_panika():
+    tory = [(1.2, 0.1), (1.1, -0.1), (1.3, 0.0), (1.0, 0.2), (1.2, -0.2)]
+    assert not ocen_panike(tory)["panika"]
+
+
+def test_szybki_chaotyczny_ruch_to_panika():
+    tory = [(3.5, 0), (-3.2, 0.5), (0, 3.8), (0.3, -3.6), (2.5, 2.5), (-2.8, -2.2)]
+    wynik = ocen_panike(tory)
+    assert wynik["panika"] and wynik["chaos"] > 0.55
 
 _TUTAJ = os.path.dirname(__file__)
 _SCIEZKA_TESTOWA = os.path.join(_TUTAJ, "..", "samples", "test_face.jpg")

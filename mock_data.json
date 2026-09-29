@@ -421,130 +421,294 @@
    "nazwa": "TALARIA",
    "tryb": "aktywny",
    "sensor": "RGB + głośnik",
+   "stacja": "RE-1",
    "trasa_patrolu": [
     [
-     51.08,
-     17.01
+     51.1195,
+     17.02
     ],
     [
-     51.08,
-     17.05
+     51.1195,
+     17.046
     ],
     [
-     51.06,
-     17.05
+     51.1015,
+     17.046
     ],
     [
-     51.06,
-     17.01
+     51.1015,
+     17.02
     ]
-   ]
+   ],
+   "zaopatrzenie": {
+    "Koc termiczny NRC": 2,
+    "Opaska uciskowa": 1,
+    "Opatrunek hemostatyczny": 1,
+    "Bandaż elastyczny": 2
+   }
   },
   {
    "id": "D2",
    "nazwa": "PETASOS",
    "tryb": "pasywny",
    "sensor": "RGB",
+   "stacja": "RE-8",
    "trasa_patrolu": [
     [
-     51.1,
-     17.05
+     51.129,
+     17.059
     ],
     [
-     51.1,
-     17.09
+     51.129,
+     17.085
     ],
     [
-     51.12,
-     17.09
+     51.111,
+     17.085
     ],
     [
-     51.12,
-     17.05
+     51.111,
+     17.059
     ]
-   ]
+   ],
+   "zaopatrzenie": {
+    "Koc termiczny NRC": 1,
+    "Żel na oparzenia": 1,
+    "Woda 0,33 l": 2,
+    "Maseczka do RKO": 1
+   }
   },
   {
    "id": "D3",
    "nazwa": "KADUCEUSZ",
    "tryb": "pasywny",
    "sensor": "Termowizja",
+   "stacja": "RE-5",
    "trasa_patrolu": [
     [
-     51.12,
-     17.01
+     51.137,
+     17.02
     ],
     [
-     51.14,
-     17.01
+     51.137,
+     17.046
     ],
     [
-     51.14,
-     16.97
+     51.119,
+     17.046
     ],
     [
-     51.12,
-     16.97
+     51.119,
+     17.02
     ]
-   ]
+   ],
+   "zaopatrzenie": {
+    "Koc termiczny NRC": 2,
+    "Opatrunek hemostatyczny": 1,
+    "Rękawiczki nitrylowe": 2,
+    "Chusta trójkątna": 1
+   }
   },
   {
    "id": "D4",
    "nazwa": "IRIS",
    "tryb": "aktywny",
    "sensor": "RGB + głośnik",
+   "stacja": "RE-6",
    "trasa_patrolu": [
     [
-     51.08,
-     17.09
+     51.073,
+     17.067
     ],
     [
-     51.08,
-     17.13
+     51.073,
+     17.093
     ],
     [
-     51.06,
-     17.13
+     51.055,
+     17.093
     ],
     [
-     51.06,
-     17.09
+     51.055,
+     17.067
     ]
-   ]
-  }
- ],
- "jednostki": [
-  {
-   "typ": "PSP",
-   "nazwa": "JRG (przykładowa)",
-   "lat": 51.106,
-   "lon": 17.018
+   ],
+   "zaopatrzenie": {
+    "Opaska uciskowa": 1,
+    "Plastry (zestaw)": 1,
+    "Żel glukozowy": 2,
+    "Koc termiczny NRC": 1
+   }
   },
   {
-   "typ": "OSP",
-   "nazwa": "OSP (przykładowa)",
+   "id": "D5",
+   "nazwa": "ZEFIR",
+   "tryb": "aktywny",
+   "sensor": "RGB + głośnik",
+   "stacja": "RE-2",
+   "trasa_patrolu": [
+    [
+     51.075,
+     16.999
+    ],
+    [
+     51.075,
+     17.025
+    ],
+    [
+     51.057,
+     17.025
+    ],
+    [
+     51.057,
+     16.999
+    ]
+   ],
+   "zaopatrzenie": {
+    "Koc termiczny NRC": 1,
+    "Opatrunek hemostatyczny": 1,
+    "Woda 0,33 l": 1
+   }
+  },
+  {
+   "id": "D6",
+   "nazwa": "MAJA",
+   "tryb": "pasywny",
+   "sensor": "Termowizja",
+   "stacja": "RE-3",
+   "trasa_patrolu": [
+    [
+     51.099,
+     16.959
+    ],
+    [
+     51.099,
+     16.985
+    ],
+    [
+     51.081,
+     16.985
+    ],
+    [
+     51.081,
+     16.959
+    ]
+   ],
+   "zaopatrzenie": {
+    "Koc termiczny NRC": 2,
+    "Żel na oparzenia": 1,
+    "Bandaż elastyczny": 1
+   }
+  },
+  {
+   "id": "D7",
+   "nazwa": "EOS",
+   "tryb": "aktywny",
+   "sensor": "RGB + głośnik",
+   "stacja": "RE-7",
+   "trasa_patrolu": [
+    [
+     51.137,
+     16.955
+    ],
+    [
+     51.137,
+     16.981
+    ],
+    [
+     51.119,
+     16.981
+    ],
+    [
+     51.119,
+     16.955
+    ]
+   ],
+   "zaopatrzenie": {
+    "Opaska uciskowa": 1,
+    "Koc termiczny NRC": 1,
+    "Maseczka do RKO": 1
+   }
+  },
+  {
+   "id": "D8",
+   "nazwa": "NIKE",
+   "tryb": "pasywny",
+   "sensor": "RGB",
+   "stacja": "RE-4",
+   "trasa_patrolu": [
+    [
+     51.113,
+     17.087
+    ],
+    [
+     51.113,
+     17.113
+    ],
+    [
+     51.095,
+     17.113
+    ],
+    [
+     51.095,
+     17.087
+    ]
+   ],
+   "zaopatrzenie": {
+    "Chusta trójkątna": 1,
+    "Plastry (zestaw)": 2,
+    "Koc termiczny NRC": 1
+   }
+  }
+ ],
+ "stacje": [
+  {
+   "id": "RE-1",
+   "nazwa": "Stare Miasto",
+   "lat": 51.1105,
+   "lon": 17.033
+  },
+  {
+   "id": "RE-2",
+   "nazwa": "Krzyki-Partynice",
    "lat": 51.066,
-   "lon": 16.985
+   "lon": 17.012
   },
   {
-   "typ": "Policja",
-   "nazwa": "Komisariat (przykładowy)",
-   "lat": 51.093,
-   "lon": 17.102
+   "id": "RE-3",
+   "nazwa": "Grabiszyn",
+   "lat": 51.09,
+   "lon": 16.972
   },
   {
-   "typ": "Karetka",
-   "nazwa": "Stacja ZRM (przykładowa)",
-   "lat": 51.074,
-   "lon": 17.062
-  }
- ],
- "szpitale": [
+   "id": "RE-4",
+   "nazwa": "Biskupin-Sępolno",
+   "lat": 51.104,
+   "lon": 17.1
+  },
   {
-   "nazwa": "Szpital (przykładowy)",
-   "lat": 51.095,
-   "lon": 17.06,
-   "lozka_wolne": 12
+   "id": "RE-5",
+   "nazwa": "Kleczków",
+   "lat": 51.128,
+   "lon": 17.033
+  },
+  {
+   "id": "RE-6",
+   "nazwa": "Brochów",
+   "lat": 51.064,
+   "lon": 17.08
+  },
+  {
+   "id": "RE-7",
+   "nazwa": "Pilczyce-Kozanów",
+   "lat": 51.128,
+   "lon": 16.968
+  },
+  {
+   "id": "RE-8",
+   "nazwa": "Zacisze-Szczytniki",
+   "lat": 51.12,
+   "lon": 17.072
   }
  ],
  "hydrografia_mock": {
@@ -784,10 +948,6 @@
   {
    "nazwa": "Punkty schronienia w Polsce (KG PSP) — zintegrowane",
    "url": "https://dane.gov.pl/pl/dataset/28058"
-  },
-  {
-   "nazwa": "Mapy zagrożenia powodziowego (Wody Polskie)",
-   "url": "https://dane.gov.pl"
   }
  ],
  "copernicus_ems_mock": [
@@ -801,7 +961,8 @@
  "scenariusze": {
   "patrol": {
    "nazwa": "Patrol rutynowy",
-   "opis": "Rój patroluje obszar gminy. Edge AI losowo (z wagami) raportuje statusy sektorów.",
+   "rodzaj": "realne",
+   "opis": "Rój patroluje gminę. Edge AI wykrywa zdarzenia różnych typów — służby dostają alert do operatora ze zdjęciem i współrzędnymi — operator decyduje, czy wysłać drona.",
    "pogoda": {
     "temperatura_c": 17.0,
     "wiatr_kmh": 12,
@@ -814,7 +975,8 @@
   },
   "powodz": {
    "nazwa": "Powódź — Odra, Wrocław",
-   "opis": "IMGW ostrzega o przekroczeniu stanu alarmowego Odry. Rój rozpoznaje strefę zalewową, ostrzega mieszkańców i wykrywa osoby do ewakuacji.",
+   "rodzaj": "realne",
+   "opis": "IMGW ostrzega o przekroczeniu stanu alarmowego Odry. Rój rozpoznaje strefę zalewową, zgłasza zdarzenia operatorowi, który kieruje drony do prowadzenia mieszkańców do schronów.",
    "pogoda": {
     "temperatura_c": 13.0,
     "wiatr_kmh": 38,
@@ -844,7 +1006,7 @@
      "dron": "D2",
      "sektor": "D3",
      "wykrycie": {
-      "status": "LUDZIE",
+      "typ": "LUDZIE",
       "osoby": 9,
       "opis": "osoby na zalewanym osiedlu"
      }
@@ -855,7 +1017,7 @@
      "dron": "D3",
      "sektor": "C4",
      "wykrycie": {
-      "status": "LUDZIE",
+      "typ": "LUDZIE",
       "osoby": 14,
       "opis": "osoby na dachach i balkonach"
      }
@@ -866,7 +1028,7 @@
      "dron": "D4",
      "sektor": "D2",
      "wykrycie": {
-      "status": "ZATOR",
+      "typ": "ZATOR",
       "osoby": 0,
       "opis": "zalana jezdnia przy moście — przejazd zablokowany"
      }
@@ -879,35 +1041,44 @@
      "komunikat": true
     },
     {
-     "t": 180,
+     "t": 150,
      "typ": "zadanie",
      "dron": "D3",
      "sektor": "B4",
      "wykrycie": {
-      "status": "LUDZIE",
+      "typ": "LUDZIE",
       "osoby": 6,
       "opis": "grupa osób przy wale przeciwpowodziowym"
      }
     },
     {
-     "t": 190,
+     "t": 170,
      "typ": "zadanie",
-     "dron": "D1",
-     "sektor": "C4",
-     "komunikat": true
+     "dron": "D2",
+     "sektor": "E2",
+     "wykrycie": {
+      "typ": "WYPADEK",
+      "osoby": 3,
+      "opis": "samochód zepchnięty przez wodę, 3 osoby w pojeździe"
+     }
     },
     {
-     "t": 260,
+     "t": 230,
      "typ": "zadanie",
-     "dron": "D4",
-     "sektor": "E2",
-     "komunikat": true
+     "dron": "D2",
+     "sektor": "C3",
+     "wykrycie": {
+      "typ": "PANIKA",
+      "osoby": 11,
+      "opis": "chaotyczny ruch tłumu przy zalanym przejściu"
+     }
     }
    ]
   },
   "pozar": {
    "nazwa": "Pożar lasu — Las Osobowicki",
-   "opis": "BDL wskazuje kompleks leśny o IV st. zagrożenia. Termowizja lokalizuje osoby uwięzione, dron-przekaźnik utrzymuje łączność mesh poza zasięgiem bazy.",
+   "rodzaj": "realne",
+   "opis": "BDL wskazuje kompleks leśny o IV st. zagrożenia. Termowizja lokalizuje osoby uwięzione, na decyzję operatora drony zrzucają apteczki, dron-przekaźnik utrzymuje łączność mesh.",
    "pogoda": {
     "temperatura_c": 33.0,
     "wiatr_kmh": 29,
@@ -929,7 +1100,7 @@
     {
      "t": 20,
      "typ": "info",
-     "opis": "CZK aktywuje HERMES — start roju, D1 jako przekaźnik mesh."
+     "opis": "CZK aktywuje HERMES — start roju, TALARIA jako przekaźnik mesh."
     },
     {
      "t": 30,
@@ -945,7 +1116,7 @@
      "dron": "D3",
      "sektor": "A5",
      "wykrycie": {
-      "status": "POMOC",
+      "typ": "POMOC",
       "osoby": 3,
       "opis": "3 sygnatury cieplne w strefie ognia — osoby uwięzione"
      }
@@ -956,7 +1127,7 @@
      "dron": "D2",
      "sektor": "B5",
      "wykrycie": {
-      "status": "POMOC",
+      "typ": "POMOC",
       "osoby": 2,
       "opis": "2 osoby odcięte przez ogień na leśnej drodze"
      }
@@ -967,7 +1138,7 @@
      "dron": "D4",
      "sektor": "A4",
      "wykrycie": {
-      "status": "LUDZIE",
+      "typ": "LUDZIE",
       "osoby": 7,
       "opis": "grupa spacerowiczów na skraju lasu"
      }
@@ -975,9 +1146,157 @@
     {
      "t": 120,
      "typ": "zadanie",
-     "dron": "D4",
-     "sektor": "A4",
-     "komunikat": true
+     "dron": "D2",
+     "sektor": "B5",
+     "wykrycie": {
+      "typ": "POZAR",
+      "osoby": 0,
+      "opis": "front ognia przesuwa się na wschód"
+     }
+    }
+   ]
+  },
+  "alarm": {
+   "nazwa": "Alarm powietrzny (OC)",
+   "rodzaj": "realne",
+   "opis": "Ogłoszono alarm powietrzny. Drony z głośnikami nadają komunikat, wyszukują grupy i osoby w panice i prowadzą je do najbliższych schronów KG PSP.",
+   "pogoda": {
+    "temperatura_c": 16.0,
+    "wiatr_kmh": 9,
+    "opad_mm_h": 0.0,
+    "wilgotnosc_proc": 61,
+    "opis": "Bez opadów, dobra widoczność"
+   },
+   "warstwy": [],
+   "kroki": [
+    {
+     "t": 0,
+     "typ": "alert",
+     "zrodlo": "RCB / Szef OC gminy (symulacja)",
+     "opis": "ALARM POWIETRZNY — zagrożenie z powietrza. Ludność kieruje się do schronów."
+    },
+    {
+     "t": 10,
+     "typ": "alarm",
+     "tresc": "Uwaga! Alarm powietrzny. Natychmiast udaj się do najbliższego schronu lub miejsca ukrycia."
+    },
+    {
+     "t": 20,
+     "typ": "zadanie",
+     "dron": "D2",
+     "sektor": "C3",
+     "wykrycie": {
+      "typ": "LUDZIE",
+      "osoby": 16,
+      "opis": "grupa osób na placu, bez schronienia"
+     }
+    },
+    {
+     "t": 20,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "B3",
+     "wykrycie": {
+      "typ": "PANIKA",
+      "osoby": 22,
+      "opis": "tłum w panice przy przystanku — chaotyczny ruch"
+     }
+    },
+    {
+     "t": 90,
+     "typ": "zadanie",
+     "dron": "D2",
+     "sektor": "D3",
+     "wykrycie": {
+      "typ": "LUDZIE",
+      "osoby": 8,
+      "opis": "osoby wychodzące z bloków"
+     }
+    },
+    {
+     "t": 90,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "C2",
+     "wykrycie": {
+      "typ": "POMOC",
+      "osoby": 1,
+      "opis": "osoba z urazem nogi, nie może iść do schronu"
+     }
+    },
+    {
+     "t": 150,
+     "typ": "alarm",
+     "tresc": "Uwaga! Alarm powietrzny trwa. Pozostań w schronie do odwołania alarmu."
+    }
+   ]
+  },
+  "cwiczenia": {
+   "nazwa": "Alarm próbny — ćwiczenia OC",
+   "rodzaj": "ćwiczenie",
+   "opis": "Zapowiedziany alarm próbny. Te same procedury co przy realnym zagrożeniu — HERMES zbiera dane, ilu mieszkańców posłuchało dronów i doszło do schronu.",
+   "pogoda": {
+    "temperatura_c": 19.0,
+    "wiatr_kmh": 7,
+    "opad_mm_h": 0.0,
+    "wilgotnosc_proc": 55,
+    "opis": "Pogodnie"
+   },
+   "warstwy": [],
+   "kroki": [
+    {
+     "t": 0,
+     "typ": "info",
+     "opis": "Ćwiczenia OC: zapowiedziany alarm próbny (test syren i BSP)."
+    },
+    {
+     "t": 10,
+     "typ": "alarm",
+     "tresc": "Uwaga! To jest alarm próbny w ramach ćwiczeń obrony cywilnej. Prosimy udać się do najbliższego schronu."
+    },
+    {
+     "t": 20,
+     "typ": "zadanie",
+     "dron": "D2",
+     "sektor": "C3",
+     "wykrycie": {
+      "typ": "LUDZIE",
+      "osoby": 18,
+      "opis": "grupa osób na placu"
+     }
+    },
+    {
+     "t": 20,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "B3",
+     "wykrycie": {
+      "typ": "LUDZIE",
+      "osoby": 12,
+      "opis": "osoby przy przystanku"
+     }
+    },
+    {
+     "t": 90,
+     "typ": "zadanie",
+     "dron": "D2",
+     "sektor": "D3",
+     "wykrycie": {
+      "typ": "LUDZIE",
+      "osoby": 9,
+      "opis": "osoby na osiedlu"
+     }
+    },
+    {
+     "t": 90,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "B2",
+     "wykrycie": {
+      "typ": "LUDZIE",
+      "osoby": 14,
+      "opis": "osoby przy szkole"
+     }
     }
    ]
   }
