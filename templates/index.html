@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HERMES — Centrum Zarządzania Kryzysowego</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body data-orto-wmts="{{ orto_wmts }}" data-prg-wms="{{ prg_wms }}">
+
+<div id="mapa"></div>
+<div class="winieta"></div>
+
+<!-- ============================================================ PASEK GORNY -->
+<header class="topbar panel">
+  <div class="marka">
+    <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+      <defs><linearGradient id="gLogo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5c451"/><stop offset="1" stop-color="#45e3ff"/></linearGradient></defs>
+      <path d="M20 3 35 11.5v17L20 37 5 28.5v-17z" fill="none" stroke="url(#gLogo)" stroke-width="2"/>
+      <path d="M9 23c4.5-.6 8.2-3.6 11-9.5 2.8 5.9 6.5 8.9 11 9.5-4 .4-7.7 2-11 5-3.3-3-7-4.6-11-5z" fill="url(#gLogo)"/>
+      <circle cx="20" cy="19" r="1.8" fill="#05080f"/>
+    </svg>
+    <div>
+      <div class="wordmark">HERMES</div>
+      <div class="rozwiniecie">Hazard Evacuation, Response &amp; Mesh Embedded System</div>
+    </div>
+  </div>
+
+  <div class="sym">
+    <span class="znacznik-sym" title="Wszystkie zdarzenia są symulowane"><i></i>SYMULACJA</span>
+    <div class="segment" id="seg-scenariusz" role="group" aria-label="Scenariusz">
+      <button data-scen="patrol" title="Klawisz 1">Patrol</button>
+      <button data-scen="powodz" title="Klawisz 2">Powódź · Odra</button>
+      <button data-scen="pozar" title="Klawisz 3">Pożar lasu</button>
+    </div>
+    <div class="sterowanie">
+      <button class="ikona" id="btn-pauza" title="Pauza / wznów (spacja)" aria-label="Pauza"></button>
+      <button class="ikona" id="btn-restart" title="Uruchom scenariusz od nowa" aria-label="Restart">
+        <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+      </button>
+      <div class="segment maly" id="seg-predkosc" role="group" aria-label="Prędkość symulacji">
+        <button data-x="1">1×</button><button data-x="2">2×</button><button data-x="4">4×</button>
+      </div>
+    </div>
+    <div class="zegar" title="Czas misji"><span id="zegar">T+00:00</span></div>
+  </div>
+
+  <div class="status-prawo">
+    <div class="chip" id="chip-pogoda" title="Pogoda w scenariuszu (symulowana)"></div>
+    <div class="chip" id="chip-imgw" title="Pogoda bieżąca — IMGW-PIB, stacja Wrocław">IMGW …</div>
+    <div class="chip chip-link" id="chip-link"><i></i><span>łączenie…</span></div>
+    <button class="ikona" id="btn-dzwiek" title="Odczytuj komunikaty głosowe dronów" aria-label="Dźwięk"></button>
+  </div>
+</header>
+
+<!-- ============================================================ LEWA KOLUMNA -->
+<aside class="lewa">
+  <section class="panel karta" id="karta-misja">
+    <div class="karta-naglowek"><h3>Misja</h3><span class="tag" id="misja-tag">—</span></div>
+    <div class="misja-nazwa" id="misja-nazwa">—</div>
+    <p class="misja-opis" id="misja-opis"></p>
+    <ol class="os-czasu" id="misja-kroki"></ol>
+  </section>
+
+  <section class="panel karta">
+    <div class="karta-naglowek"><h3>Obraz sytuacji</h3><span class="tag">25 sektorów</span></div>
+    <div class="sytuacja">
+      <div class="donut">
+        <canvas id="wykres" width="112" height="112"></canvas>
+        <div class="donut-srodek"><b id="kpi-zagrozone">0</b><span>zagrożone</span></div>
+      </div>
+      <ul class="legenda-statusow" id="legenda-statusow"></ul>
+    </div>
+    <div class="kpi-siatka">
+      <div class="kpi"><b id="kpi-osoby">0</b><span>osób w strefach</span></div>
+      <div class="kpi"><b id="kpi-twarze">0</b><span>twarzy zanonim. (edge)</span></div>
+      <div class="kpi"><b id="kpi-realizacja">0</b><span>działań w toku</span></div>
+      <div class="kpi"><b id="kpi-mesh">0/0</b><span>węzłów w mesh</span></div>
+    </div>
+  </section>
+
+  <section class="panel karta">
+    <div class="karta-naglowek"><h3>Warstwy</h3></div>
+    <div class="warstwy-bazowe" role="radiogroup" aria-label="Mapa bazowa">
+      <label><input type="radio" name="baza" value="orto" checked><span>Ortofoto</span></label>
+      <label><input type="radio" name="baza" value="ciemna"><span>Ciemna</span></label>
+      <label><input type="radio" name="baza" value="osm"><span>OSM</span></label>
+    </div>
+    <div class="przelaczniki">
+      <label><input type="checkbox" id="w-sektory" checked><i></i>Siatka sektorów</label>
+      <label><input type="checkbox" id="w-heat" checked><i></i>Mapa ciepła (osoby)</label>
+      <label><input type="checkbox" id="w-mesh" checked><i></i>Sieć mesh</label>
+      <label><input type="checkbox" id="w-schrony" checked><i></i>Schrony KG PSP <em id="liczba-schronow"></em></label>
+      <label><input type="checkbox" id="w-scen" checked><i></i>Warstwy scenariusza</label>
+      <label><input type="checkbox" id="w-jednostki" checked><i></i>Jednostki (przykładowe)</label>
+      <label><input type="checkbox" id="w-prg"><i></i>Granice gmin (PRG)</label>
+    </div>
+  </section>
+</aside>
+
+<!-- ============================================================ PRAWY PANEL -->
+<aside class="prawa panel">
+  <nav class="zakladki" role="tablist">
+    <button class="aktywna" data-tab="zdarzenia">Zdarzenia</button>
+    <button data-tab="decyzje">Decyzje <span class="licznik" id="licznik-decyzji" hidden>0</span></button>
+    <button data-tab="flota">Flota</button>
+    <button data-tab="rodo">RODO</button>
+    <button data-tab="dane">Dane</button>
+  </nav>
+
+  <section class="tab widoczna" id="tab-zdarzenia">
+    <div class="pasek-narzedzi">
+      <div class="filtry" id="filtry">
+        <button class="aktywny" data-f="wszystkie">Wszystkie</button>
+        <button data-f="wykrycia">Wykrycia</button>
+        <button data-f="dzialania">Działania</button>
+        <button data-f="mesh">Mesh</button>
+        <button data-f="system">System</button>
+      </div>
+      <div class="eksport">
+        <a href="/api/eksport/json" download title="Eksport metadanych (JSON)">JSON</a>
+        <a href="/api/eksport/csv" download title="Eksport metadanych (CSV)">CSV</a>
+      </div>
+    </div>
+    <ol class="feed" id="feed" data-filtr="wszystkie"></ol>
+  </section>
+
+  <section class="tab" id="tab-decyzje">
+    <div class="decyzje-gora">
+      <div class="reguly">
+        <span><i class="kropka st-POMOC"></i>POMOC → ZRM + PSP</span>
+        <span><i class="kropka st-LUDZIE"></i>LUDZIE → OSP + PSP</span>
+        <span><i class="kropka st-ZATOR"></i>ZATOR → Policja</span>
+      </div>
+      <button class="btn-glowny" id="btn-rekomenduj">Rekomenduj akcję</button>
+    </div>
+    <div id="lista-rek" class="lista-rek"><p class="pusto">Naciśnij „Rekomenduj akcję”, aby CZK oceniło bieżący obraz sytuacji.</p></div>
+  </section>
+
+  <section class="tab" id="tab-flota">
+    <p class="podpowiedz">Symuluj awarię węzła, aby zobaczyć samonaprawę sieci mesh i buforowanie danych (store-and-forward).</p>
+    <div id="lista-flota" class="lista-flota"></div>
+  </section>
+
+  <section class="tab" id="tab-rodo">
+    <p class="podpowiedz">Anonimizacja działa <b>na pokładzie BSP</b>, zanim cokolwiek opuści drona. Do CZK trafiają wyłącznie metadane. Poniżej prawdziwy pipeline edge AI (OpenCV) uruchomiony na klatce testowej.</p>
+    <div class="segment pelny" id="seg-anon">
+      <button data-tryb="blur" class="aktywny">Rozmycie</button>
+      <button data-tryb="pixel">Pikselizacja</button>
+      <button data-tryb="black">Zaczernienie</button>
+    </div>
+    <div class="porownanie" id="porownanie">
+      <img class="po" id="img-po" alt="Klatka po anonimizacji">
+      <img class="przed" id="img-przed" alt="Klatka oryginalna (tylko na pokładzie)">
+      <div class="linia-suwaka"></div>
+      <input type="range" id="suwak" min="0" max="100" value="50" aria-label="Porównanie przed i po">
+      <span class="et et-l">ORYGINAŁ · zostaje na BSP</span>
+      <span class="et et-r">PO ANONIMIZACJI</span>
+    </div>
+    <div class="pakiet">
+      <div class="pakiet-naglowek"><span>Pakiet BSP → CZK</span><span id="pakiet-rozmiar"></span></div>
+      <pre id="pakiet-json">—</pre>
+    </div>
+    <ul class="zasady">
+      <li>Detekcja twarzy (Haar) + osób (HOG) na pokładzie, obraz nigdy nie jest wysyłany.</li>
+      <li>W logach tylko licznik zanonimizowanych twarzy — bez pozycji i identyfikatorów.</li>
+      <li>Test jednostkowy: po anonimizacji detektor zwraca 0 twarzy (3 tryby).</li>
+      <li>Baza i eksport nie mają pola na obraz — test <code>tests/test_rodo.py</code>.</li>
+    </ul>
+  </section>
+
+  <section class="tab" id="tab-dane">
+    <div class="oficjalne">
+      <b>Miejsca schronienia — dane oficjalne</b>
+      <p id="schrony-opis">Ładowanie…</p>
+      <a href="https://gdziesieukryc.pl" target="_blank" rel="noopener">Oficjalna mapa PSP „Gdzie się ukryć” ↗</a>
+    </div>
+    <table class="zrodla" id="tabela-zrodel">
+      <thead><tr><th>Źródło</th><th>Użycie</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="atrybucja">Źródłem pochodzenia danych meteorologicznych jest Instytut Meteorologii i Gospodarki Wodnej – Państwowy Instytut Badawczy. Ortofotomapa i PRG: © GUGiK. Punkty schronienia: KG PSP, dane.gov.pl (CC BY 4.0). Zdarzenia, drony i jednostki na mapie są fikcyjne.</p>
+  </section>
+</aside>
+
+<!-- ============================================================ PETLA INFORMACYJNA -->
+<footer class="petla panel" aria-label="Pętla informacyjna HERMES">
+  <ol class="etapy" id="etapy">
+    <li><i></i><span>Potrzeba</span></li>
+    <li><i></i><span>Dron</span></li>
+    <li><i></i><span>Dane</span></li>
+    <li><i></i><span>Edge AI</span></li>
+    <li><i></i><span>Metadane</span></li>
+    <li><i></i><span>Wizualizacja</span></li>
+    <li><i></i><span>Decyzja</span></li>
+    <li><i></i><span>Działanie</span></li>
+  </ol>
+  <div class="ostatni-pakiet"><span>ostatni pakiet</span><code id="ostatni-pakiet">oczekiwanie na metadane z roju…</code></div>
+</footer>
+
+<div id="toasty" aria-live="polite"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

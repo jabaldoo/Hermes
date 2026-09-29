@@ -1,0 +1,985 @@
+{
+ "obszar_demo": {
+  "nazwa": "Wrocław — obszar demonstracyjny (zdarzenia fikcyjne)",
+  "lat_min": 51.05,
+  "lat_max": 51.15,
+  "lon_min": 16.95,
+  "lon_max": 17.15,
+  "lat_centrum": 51.1,
+  "lon_centrum": 17.05
+ },
+ "baza": {
+  "nazwa": "Stanowisko CZK / baza BSP",
+  "lat": 51.088,
+  "lon": 17.035
+ },
+ "sektory": [
+  {
+   "id": "A1",
+   "nazwa": "Sektor A1",
+   "wiersz": 1,
+   "kolumna": "A",
+   "lat_min": 51.05,
+   "lat_max": 51.07,
+   "lon_min": 16.95,
+   "lon_max": 16.99,
+   "lat_centrum": 51.06,
+   "lon_centrum": 16.97,
+   "ludnosc_szac": 347,
+   "wysokosc_npm_m": 115,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "B1",
+   "nazwa": "Sektor B1",
+   "wiersz": 1,
+   "kolumna": "B",
+   "lat_min": 51.05,
+   "lat_max": 51.07,
+   "lon_min": 16.99,
+   "lon_max": 17.03,
+   "lat_centrum": 51.06,
+   "lon_centrum": 17.01,
+   "ludnosc_szac": 399,
+   "wysokosc_npm_m": 120,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "C1",
+   "nazwa": "Sektor C1",
+   "wiersz": 1,
+   "kolumna": "C",
+   "lat_min": 51.05,
+   "lat_max": 51.07,
+   "lon_min": 17.03,
+   "lon_max": 17.07,
+   "lat_centrum": 51.06,
+   "lon_centrum": 17.05,
+   "ludnosc_szac": 134,
+   "wysokosc_npm_m": 116,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  },
+  {
+   "id": "D1",
+   "nazwa": "Sektor D1",
+   "wiersz": 1,
+   "kolumna": "D",
+   "lat_min": 51.05,
+   "lat_max": 51.07,
+   "lon_min": 17.07,
+   "lon_max": 17.11,
+   "lat_centrum": 51.06,
+   "lon_centrum": 17.09,
+   "ludnosc_szac": 72,
+   "wysokosc_npm_m": 114,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  },
+  {
+   "id": "E1",
+   "nazwa": "Sektor E1",
+   "wiersz": 1,
+   "kolumna": "E",
+   "lat_min": 51.05,
+   "lat_max": 51.07,
+   "lon_min": 17.11,
+   "lon_max": 17.15,
+   "lat_centrum": 51.06,
+   "lon_centrum": 17.13,
+   "ludnosc_szac": 236,
+   "wysokosc_npm_m": 113,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "A2",
+   "nazwa": "Sektor A2",
+   "wiersz": 2,
+   "kolumna": "A",
+   "lat_min": 51.07,
+   "lat_max": 51.09,
+   "lon_min": 16.95,
+   "lon_max": 16.99,
+   "lat_centrum": 51.08,
+   "lon_centrum": 16.97,
+   "ludnosc_szac": 67,
+   "wysokosc_npm_m": 118,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "B2",
+   "nazwa": "Sektor B2",
+   "wiersz": 2,
+   "kolumna": "B",
+   "lat_min": 51.07,
+   "lat_max": 51.09,
+   "lon_min": 16.99,
+   "lon_max": 17.03,
+   "lat_centrum": 51.08,
+   "lon_centrum": 17.01,
+   "ludnosc_szac": 278,
+   "wysokosc_npm_m": 112,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  },
+  {
+   "id": "C2",
+   "nazwa": "Sektor C2",
+   "wiersz": 2,
+   "kolumna": "C",
+   "lat_min": 51.07,
+   "lat_max": 51.09,
+   "lon_min": 17.03,
+   "lon_max": 17.07,
+   "lat_centrum": 51.08,
+   "lon_centrum": 17.05,
+   "ludnosc_szac": 121,
+   "wysokosc_npm_m": 125,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "D2",
+   "nazwa": "Sektor D2",
+   "wiersz": 2,
+   "kolumna": "D",
+   "lat_min": 51.07,
+   "lat_max": 51.09,
+   "lon_min": 17.07,
+   "lon_max": 17.11,
+   "lat_centrum": 51.08,
+   "lon_centrum": 17.09,
+   "ludnosc_szac": 249,
+   "wysokosc_npm_m": 120,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "E2",
+   "nazwa": "Sektor E2",
+   "wiersz": 2,
+   "kolumna": "E",
+   "lat_min": 51.07,
+   "lat_max": 51.09,
+   "lon_min": 17.11,
+   "lon_max": 17.15,
+   "lat_centrum": 51.08,
+   "lon_centrum": 17.13,
+   "ludnosc_szac": 101,
+   "wysokosc_npm_m": 125,
+   "lidar_gestosc_pkt_m2": 6,
+   "status": "OK"
+  },
+  {
+   "id": "A3",
+   "nazwa": "Sektor A3",
+   "wiersz": 3,
+   "kolumna": "A",
+   "lat_min": 51.09,
+   "lat_max": 51.11,
+   "lon_min": 16.95,
+   "lon_max": 16.99,
+   "lat_centrum": 51.1,
+   "lon_centrum": 16.97,
+   "ludnosc_szac": 162,
+   "wysokosc_npm_m": 116,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "B3",
+   "nazwa": "Sektor B3",
+   "wiersz": 3,
+   "kolumna": "B",
+   "lat_min": 51.09,
+   "lat_max": 51.11,
+   "lon_min": 16.99,
+   "lon_max": 17.03,
+   "lat_centrum": 51.1,
+   "lon_centrum": 17.01,
+   "ludnosc_szac": 192,
+   "wysokosc_npm_m": 115,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "C3",
+   "nazwa": "Sektor C3",
+   "wiersz": 3,
+   "kolumna": "C",
+   "lat_min": 51.09,
+   "lat_max": 51.11,
+   "lon_min": 17.03,
+   "lon_max": 17.07,
+   "lat_centrum": 51.1,
+   "lon_centrum": 17.05,
+   "ludnosc_szac": 214,
+   "wysokosc_npm_m": 115,
+   "lidar_gestosc_pkt_m2": 6,
+   "status": "OK"
+  },
+  {
+   "id": "D3",
+   "nazwa": "Sektor D3",
+   "wiersz": 3,
+   "kolumna": "D",
+   "lat_min": 51.09,
+   "lat_max": 51.11,
+   "lon_min": 17.07,
+   "lon_max": 17.11,
+   "lat_centrum": 51.1,
+   "lon_centrum": 17.09,
+   "ludnosc_szac": 196,
+   "wysokosc_npm_m": 120,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "E3",
+   "nazwa": "Sektor E3",
+   "wiersz": 3,
+   "kolumna": "E",
+   "lat_min": 51.09,
+   "lat_max": 51.11,
+   "lon_min": 17.11,
+   "lon_max": 17.15,
+   "lat_centrum": 51.1,
+   "lon_centrum": 17.13,
+   "ludnosc_szac": 393,
+   "wysokosc_npm_m": 126,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  },
+  {
+   "id": "A4",
+   "nazwa": "Sektor A4",
+   "wiersz": 4,
+   "kolumna": "A",
+   "lat_min": 51.11,
+   "lat_max": 51.13,
+   "lon_min": 16.95,
+   "lon_max": 16.99,
+   "lat_centrum": 51.12,
+   "lon_centrum": 16.97,
+   "ludnosc_szac": 83,
+   "wysokosc_npm_m": 124,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "B4",
+   "nazwa": "Sektor B4",
+   "wiersz": 4,
+   "kolumna": "B",
+   "lat_min": 51.11,
+   "lat_max": 51.13,
+   "lon_min": 16.99,
+   "lon_max": 17.03,
+   "lat_centrum": 51.12,
+   "lon_centrum": 17.01,
+   "ludnosc_szac": 302,
+   "wysokosc_npm_m": 121,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  },
+  {
+   "id": "C4",
+   "nazwa": "Sektor C4",
+   "wiersz": 4,
+   "kolumna": "C",
+   "lat_min": 51.11,
+   "lat_max": 51.13,
+   "lon_min": 17.03,
+   "lon_max": 17.07,
+   "lat_centrum": 51.12,
+   "lon_centrum": 17.05,
+   "ludnosc_szac": 336,
+   "wysokosc_npm_m": 123,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  },
+  {
+   "id": "D4",
+   "nazwa": "Sektor D4",
+   "wiersz": 4,
+   "kolumna": "D",
+   "lat_min": 51.11,
+   "lat_max": 51.13,
+   "lon_min": 17.07,
+   "lon_max": 17.11,
+   "lat_centrum": 51.12,
+   "lon_centrum": 17.09,
+   "ludnosc_szac": 118,
+   "wysokosc_npm_m": 114,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "E4",
+   "nazwa": "Sektor E4",
+   "wiersz": 4,
+   "kolumna": "E",
+   "lat_min": 51.11,
+   "lat_max": 51.13,
+   "lon_min": 17.11,
+   "lon_max": 17.15,
+   "lat_centrum": 51.12,
+   "lon_centrum": 17.13,
+   "ludnosc_szac": 358,
+   "wysokosc_npm_m": 119,
+   "lidar_gestosc_pkt_m2": 6,
+   "status": "OK"
+  },
+  {
+   "id": "A5",
+   "nazwa": "Sektor A5",
+   "wiersz": 5,
+   "kolumna": "A",
+   "lat_min": 51.13,
+   "lat_max": 51.15,
+   "lon_min": 16.95,
+   "lon_max": 16.99,
+   "lat_centrum": 51.14,
+   "lon_centrum": 16.97,
+   "ludnosc_szac": 60,
+   "wysokosc_npm_m": 119,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "B5",
+   "nazwa": "Sektor B5",
+   "wiersz": 5,
+   "kolumna": "B",
+   "lat_min": 51.13,
+   "lat_max": 51.15,
+   "lon_min": 16.99,
+   "lon_max": 17.03,
+   "lat_centrum": 51.14,
+   "lon_centrum": 17.01,
+   "ludnosc_szac": 214,
+   "wysokosc_npm_m": 120,
+   "lidar_gestosc_pkt_m2": 6,
+   "status": "OK"
+  },
+  {
+   "id": "C5",
+   "nazwa": "Sektor C5",
+   "wiersz": 5,
+   "kolumna": "C",
+   "lat_min": 51.13,
+   "lat_max": 51.15,
+   "lon_min": 17.03,
+   "lon_max": 17.07,
+   "lat_centrum": 51.14,
+   "lon_centrum": 17.05,
+   "ludnosc_szac": 345,
+   "wysokosc_npm_m": 123,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "D5",
+   "nazwa": "Sektor D5",
+   "wiersz": 5,
+   "kolumna": "D",
+   "lat_min": 51.13,
+   "lat_max": 51.15,
+   "lon_min": 17.07,
+   "lon_max": 17.11,
+   "lat_centrum": 51.14,
+   "lon_centrum": 17.09,
+   "ludnosc_szac": 209,
+   "wysokosc_npm_m": 123,
+   "lidar_gestosc_pkt_m2": 4,
+   "status": "OK"
+  },
+  {
+   "id": "E5",
+   "nazwa": "Sektor E5",
+   "wiersz": 5,
+   "kolumna": "E",
+   "lat_min": 51.13,
+   "lat_max": 51.15,
+   "lon_min": 17.11,
+   "lon_max": 17.15,
+   "lat_centrum": 51.14,
+   "lon_centrum": 17.13,
+   "ludnosc_szac": 363,
+   "wysokosc_npm_m": 120,
+   "lidar_gestosc_pkt_m2": 12,
+   "status": "OK"
+  }
+ ],
+ "drony": [
+  {
+   "id": "D1",
+   "nazwa": "TALARIA",
+   "tryb": "aktywny",
+   "sensor": "RGB + głośnik",
+   "trasa_patrolu": [
+    [
+     51.08,
+     17.01
+    ],
+    [
+     51.08,
+     17.05
+    ],
+    [
+     51.06,
+     17.05
+    ],
+    [
+     51.06,
+     17.01
+    ]
+   ]
+  },
+  {
+   "id": "D2",
+   "nazwa": "PETASOS",
+   "tryb": "pasywny",
+   "sensor": "RGB",
+   "trasa_patrolu": [
+    [
+     51.1,
+     17.05
+    ],
+    [
+     51.1,
+     17.09
+    ],
+    [
+     51.12,
+     17.09
+    ],
+    [
+     51.12,
+     17.05
+    ]
+   ]
+  },
+  {
+   "id": "D3",
+   "nazwa": "KADUCEUSZ",
+   "tryb": "pasywny",
+   "sensor": "Termowizja",
+   "trasa_patrolu": [
+    [
+     51.12,
+     17.01
+    ],
+    [
+     51.14,
+     17.01
+    ],
+    [
+     51.14,
+     16.97
+    ],
+    [
+     51.12,
+     16.97
+    ]
+   ]
+  },
+  {
+   "id": "D4",
+   "nazwa": "IRIS",
+   "tryb": "aktywny",
+   "sensor": "RGB + głośnik",
+   "trasa_patrolu": [
+    [
+     51.08,
+     17.09
+    ],
+    [
+     51.08,
+     17.13
+    ],
+    [
+     51.06,
+     17.13
+    ],
+    [
+     51.06,
+     17.09
+    ]
+   ]
+  }
+ ],
+ "jednostki": [
+  {
+   "typ": "PSP",
+   "nazwa": "JRG (przykładowa)",
+   "lat": 51.106,
+   "lon": 17.018
+  },
+  {
+   "typ": "OSP",
+   "nazwa": "OSP (przykładowa)",
+   "lat": 51.066,
+   "lon": 16.985
+  },
+  {
+   "typ": "Policja",
+   "nazwa": "Komisariat (przykładowy)",
+   "lat": 51.093,
+   "lon": 17.102
+  },
+  {
+   "typ": "Karetka",
+   "nazwa": "Stacja ZRM (przykładowa)",
+   "lat": 51.074,
+   "lon": 17.062
+  }
+ ],
+ "szpitale": [
+  {
+   "nazwa": "Szpital (przykładowy)",
+   "lat": 51.095,
+   "lon": 17.06,
+   "lozka_wolne": 12
+  }
+ ],
+ "hydrografia_mock": {
+  "odra": [
+   [
+    51.052,
+    17.15
+   ],
+   [
+    51.064,
+    17.128
+   ],
+   [
+    51.075,
+    17.11
+   ],
+   [
+    51.086,
+    17.094
+   ],
+   [
+    51.095,
+    17.08
+   ],
+   [
+    51.101,
+    17.066
+   ],
+   [
+    51.107,
+    17.055
+   ],
+   [
+    51.113,
+    17.04
+   ],
+   [
+    51.117,
+    17.022
+   ],
+   [
+    51.121,
+    17.008
+   ],
+   [
+    51.126,
+    16.996
+   ],
+   [
+    51.131,
+    16.984
+   ],
+   [
+    51.137,
+    16.97
+   ],
+   [
+    51.143,
+    16.958
+   ],
+   [
+    51.148,
+    16.95
+   ]
+  ],
+  "strefa_zalewowa": [
+   [
+    51.04691,
+    17.14297
+   ],
+   [
+    51.05902,
+    17.12076
+   ],
+   [
+    51.0703,
+    17.1023
+   ],
+   [
+    51.08137,
+    17.08619
+   ],
+   [
+    51.08987,
+    17.07304
+   ],
+   [
+    51.09564,
+    17.05949
+   ],
+   [
+    51.10156,
+    17.04865
+   ],
+   [
+    51.10692,
+    17.03534
+   ],
+   [
+    51.11073,
+    17.01803
+   ],
+   [
+    51.11509,
+    17.00282
+   ],
+   [
+    51.12038,
+    16.99007
+   ],
+   [
+    51.1254,
+    16.97801
+   ],
+   [
+    51.13156,
+    16.96365
+   ],
+   [
+    51.13792,
+    16.95093
+   ],
+   [
+    51.14322,
+    16.94243
+   ],
+   [
+    51.15278,
+    16.95757
+   ],
+   [
+    51.14808,
+    16.96507
+   ],
+   [
+    51.14244,
+    16.97635
+   ],
+   [
+    51.1366,
+    16.98999
+   ],
+   [
+    51.13162,
+    17.00193
+   ],
+   [
+    51.12691,
+    17.01318
+   ],
+   [
+    51.12327,
+    17.02597
+   ],
+   [
+    51.11908,
+    17.04466
+   ],
+   [
+    51.11244,
+    17.06135
+   ],
+   [
+    51.10636,
+    17.07251
+   ],
+   [
+    51.10013,
+    17.08696
+   ],
+   [
+    51.09063,
+    17.10181
+   ],
+   [
+    51.0797,
+    17.1177
+   ],
+   [
+    51.06898,
+    17.13524
+   ],
+   [
+    51.05709,
+    17.15703
+   ]
+  ],
+  "wodowskaz": {
+   "nazwa": "Wrocław-Trestno",
+   "stan_alarmowy_cm": 550
+  }
+ },
+ "lasy_bdl_mock": {
+  "las": [
+   [
+    51.149,
+    16.953
+   ],
+   [
+    51.149,
+    17.027
+   ],
+   [
+    51.139,
+    17.03
+   ],
+   [
+    51.133,
+    17.012
+   ],
+   [
+    51.127,
+    16.993
+   ],
+   [
+    51.121,
+    16.972
+   ],
+   [
+    51.118,
+    16.953
+   ]
+  ],
+  "nazwa": "Las Osobowicki (obrys przybliżony)",
+  "ogniska": [
+   [
+    51.141,
+    16.975
+   ],
+   [
+    51.143,
+    17.012
+   ]
+  ]
+ },
+ "dane_gov_pl_mock": [
+  {
+   "nazwa": "Punkty schronienia w Polsce (KG PSP) — zintegrowane",
+   "url": "https://dane.gov.pl/pl/dataset/28058"
+  },
+  {
+   "nazwa": "Mapy zagrożenia powodziowego (Wody Polskie)",
+   "url": "https://dane.gov.pl"
+  }
+ ],
+ "copernicus_ems_mock": [
+  {
+   "id": "EMSR-MOCK-001",
+   "typ": "Powódź",
+   "kraj": "Polska",
+   "status": "aktywne"
+  }
+ ],
+ "scenariusze": {
+  "patrol": {
+   "nazwa": "Patrol rutynowy",
+   "opis": "Rój patroluje obszar gminy. Edge AI losowo (z wagami) raportuje statusy sektorów.",
+   "pogoda": {
+    "temperatura_c": 17.0,
+    "wiatr_kmh": 12,
+    "opad_mm_h": 0.0,
+    "wilgotnosc_proc": 58,
+    "opis": "Umiarkowanie, bez opadów"
+   },
+   "warstwy": [],
+   "kroki": []
+  },
+  "powodz": {
+   "nazwa": "Powódź — Odra, Wrocław",
+   "opis": "IMGW ostrzega o przekroczeniu stanu alarmowego Odry. Rój rozpoznaje strefę zalewową, ostrzega mieszkańców i wykrywa osoby do ewakuacji.",
+   "pogoda": {
+    "temperatura_c": 13.0,
+    "wiatr_kmh": 38,
+    "opad_mm_h": 21.0,
+    "wilgotnosc_proc": 97,
+    "opis": "Ulewny deszcz — ostrzeżenie IMGW 3° (mock)"
+   },
+   "warstwy": [
+    "odra",
+    "strefa_zalewowa"
+   ],
+   "kroki": [
+    {
+     "t": 0,
+     "typ": "alert",
+     "zrodlo": "IMGW-PIB hydro (mock)",
+     "opis": "Odra, wodowskaz Wrocław-Trestno: 642 cm — przekroczony stan alarmowy (550 cm), trend rosnący."
+    },
+    {
+     "t": 20,
+     "typ": "info",
+     "opis": "CZK aktywuje HERMES — start 4 BSP z bazy."
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D2",
+     "sektor": "D3",
+     "wykrycie": {
+      "status": "LUDZIE",
+      "osoby": 9,
+      "opis": "osoby na zalewanym osiedlu"
+     }
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "C4",
+     "wykrycie": {
+      "status": "LUDZIE",
+      "osoby": 14,
+      "opis": "osoby na dachach i balkonach"
+     }
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D4",
+     "sektor": "D2",
+     "wykrycie": {
+      "status": "ZATOR",
+      "osoby": 0,
+      "opis": "zalana jezdnia przy moście — przejazd zablokowany"
+     }
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D1",
+     "sektor": "C3",
+     "komunikat": true
+    },
+    {
+     "t": 180,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "B4",
+     "wykrycie": {
+      "status": "LUDZIE",
+      "osoby": 6,
+      "opis": "grupa osób przy wale przeciwpowodziowym"
+     }
+    },
+    {
+     "t": 190,
+     "typ": "zadanie",
+     "dron": "D1",
+     "sektor": "C4",
+     "komunikat": true
+    },
+    {
+     "t": 260,
+     "typ": "zadanie",
+     "dron": "D4",
+     "sektor": "E2",
+     "komunikat": true
+    }
+   ]
+  },
+  "pozar": {
+   "nazwa": "Pożar lasu — Las Osobowicki",
+   "opis": "BDL wskazuje kompleks leśny o IV st. zagrożenia. Termowizja lokalizuje osoby uwięzione, dron-przekaźnik utrzymuje łączność mesh poza zasięgiem bazy.",
+   "pogoda": {
+    "temperatura_c": 33.0,
+    "wiatr_kmh": 29,
+    "opad_mm_h": 0.0,
+    "wilgotnosc_proc": 17,
+    "opis": "Upał i susza — IV st. zagrożenia pożarowego (mock)"
+   },
+   "warstwy": [
+    "las",
+    "ogniska"
+   ],
+   "kroki": [
+    {
+     "t": 0,
+     "typ": "alert",
+     "zrodlo": "BDL + CEMS (mock)",
+     "opis": "Las Osobowicki: zgłoszenie dymu (112), IV stopień zagrożenia pożarowego lasu."
+    },
+    {
+     "t": 20,
+     "typ": "info",
+     "opis": "CZK aktywuje HERMES — start roju, D1 jako przekaźnik mesh."
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D1",
+     "sektor": "B4",
+     "komunikat": true,
+     "przekaznik": true
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D3",
+     "sektor": "A5",
+     "wykrycie": {
+      "status": "POMOC",
+      "osoby": 3,
+      "opis": "3 sygnatury cieplne w strefie ognia — osoby uwięzione"
+     }
+    },
+    {
+     "t": 30,
+     "typ": "zadanie",
+     "dron": "D2",
+     "sektor": "B5",
+     "wykrycie": {
+      "status": "POMOC",
+      "osoby": 2,
+      "opis": "2 osoby odcięte przez ogień na leśnej drodze"
+     }
+    },
+    {
+     "t": 40,
+     "typ": "zadanie",
+     "dron": "D4",
+     "sektor": "A4",
+     "wykrycie": {
+      "status": "LUDZIE",
+      "osoby": 7,
+      "opis": "grupa spacerowiczów na skraju lasu"
+     }
+    },
+    {
+     "t": 120,
+     "typ": "zadanie",
+     "dron": "D4",
+     "sektor": "A4",
+     "komunikat": true
+    }
+   ]
+  }
+ }
+}
