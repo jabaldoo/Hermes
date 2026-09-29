@@ -310,7 +310,7 @@ function aktualizujDrony(drony) {
     el.querySelector(".dron-svg").style.transform = `rotate(${d.kurs}deg)`;
     el.querySelector(".dron-etykieta").innerHTML = !d.zywy ? `${d.id} · UTRACONY`
       : d.faza === "uziemiony" ? `${d.id} · UZIEMIONY (DESZCZ)`
-      : `${d.id} · ${Math.round(d.bateria)}%${d.faza === "prowadzi" ? " · PROWADZI" : ""}${d.bufor ? ` · <em>BUF ${d.bufor}</em>` : d.hops === null ? " · <em>OFFLINE</em>" : ""}`;
+      : `${d.id} · ${Math.round(d.bateria)}%${d.faza === "prowadzi" ? " · PROWADZI" : ""}${d.czuwa_inc ? ` · CZUWA #${d.czuwa_inc}` : ""}${d.bufor ? ` · <em>BUF ${d.bufor}</em>` : d.hops === null ? " · <em>OFFLINE</em>" : ""}`;
   });
 }
 
@@ -759,6 +759,7 @@ function renderujIncydenty(lista) {
       <p>${esc(i.opis)} <span class="inc-sektor">— zgłasza ${esc(i.zglaszajacy)}</span></p>
       <div class="wsp">${IKONY.PIN}<span>${esc(i.wsp)}</span><button data-kopiuj="${i.lat}, ${i.lon}">kopiuj</button></div>
       ${htmlStanuZgloszenia(i)}${i.czeka ? `<div class="zg-zalecenie"><b>Zalecenie:</b> ${esc(i.zalecenie)}</div>` : ""}${htmlAkcjiDrona(i)}
+      ${i.czuwa?.length ? `<div class="inc-linia">${IKONY.PIN}<span><b>${esc(i.czuwa.join(", "))}</b> ${i.czuwa.length > 1 ? "czuwają" : "czuwa"} na miejscu zdarzenia</span></div>` : ""}
       ${i.zrzut.length ? `<div class="inc-linia zrzut">${IKONY.ZRZUT}<span>Zrzut z drona: ${esc(i.zrzut.join(", "))}</span></div>` : ""}
       ${i.aktywny ? `<div class="inc-decyzje">${htmlPrzyciskowDecyzji(i)}</div>` : ""}
     </article>`).join("");

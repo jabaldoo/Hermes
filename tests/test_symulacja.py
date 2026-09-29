@@ -163,6 +163,41 @@ def test_deszcz_uziemia_czesc_floty_reszta_w_wersji_deszczowej(sym):
     assert not any(d["faza"] == "uziemiony" or d["odporny"] for d in sym.drony.values())
 
 
+def _wykrycie_testowe(sym, dron_id="D1"):
+    d = sym.drony[dron_id]
+    d["bateria"] = 100.0
+    sid = sym._sektor_dla(d["lat"], d["lon"]) or "C3"
+    sym._wykrycie(d, sid, "WYPADEK", 2, "zdarzenie testowe", 0.9)
+    return d, max(sym.incydenty.values(), key=lambda i: i["id"])
+
+
+def test_dron_czuwa_przy_wykrytym_zdarzeniu_az_do_przyjazdu_sluzb(sym):
+    sym.uruchom_scenariusz("patrol")
+    d, inc = _wykrycie_testowe(sym)
+    odleglosci = []
+    _ticki(sym, 30, lambda: odleglosci.append(simulator._km((d["lat"], d["lon"]), (inc["lat"], inc["lon"]))))
+    assert d["faza"] == "czuwa" and d["czuwa"]["inc"] == inc["id"]
+    assert max(odleglosci[5:]) < 0.35, "dron powinien krazyc blisko zdarzenia"
+    assert len({(round(d["lat"], 5), round(d["lon"], 5))}) == 1 and len(set(map(lambda x: round(x, 4), odleglosci))) > 3
+    assert sym.decyzja(inc["id"], "sluzby")
+    _ticki(sym, simulator.CZUWANIE_SLUZBY - 3)
+    assert d["faza"] == "czuwa", "po przekazaniu sluzbom dron czeka na ich przyjazd"
+    _ticki(sym, 5)
+    assert d["faza"] == "patrol" and d["czuwa"] is None
+
+
+def test_odrzucenie_zwalnia_drona_a_brak_decyzji_ma_limit(sym):
+    sym.uruchom_scenariusz("patrol")
+    d, inc = _wykrycie_testowe(sym, "D1")
+    _ticki(sym, 5)
+    assert sym.decyzja(inc["id"], "odrzuc")
+    _ticki(sym, 1)
+    assert d["faza"] == "patrol"
+    d2, inc2 = _wykrycie_testowe(sym, "D3")
+    _ticki(sym, simulator.CZUWANIE_MAKS_BEZ_DECYZJI + 2)
+    assert d2["faza"] != "czuwa" and inc2["aktywny"] and inc2["decyzja"] is None
+
+
 def test_planer_omija_wielokat():
     s = simulator.Symulator.__new__(simulator.Symulator)
     kwadrat = [(51.10, 17.00), (51.10, 17.02), (51.11, 17.02), (51.11, 17.00)]

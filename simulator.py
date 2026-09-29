@@ -27,7 +27,13 @@ KROK_PROWADZENIA_KM = 0.05     # tempo marszu grupy za dronem (czas misji jest s
 ZASIEG_MESH_KM = 4.5
 TICKI_SKANU = 4
 TICKI_WEZWANIA = 4
-TICKI_OBSERWACJI = 10
+TICKI_OBSERWACJI = 20          # dron-wykonawca zostaje na miejscu, symulujac udzielanie pomocy
+# Czuwanie: dron, ktory wykryl zdarzenie (albo udzielil pomocy), krazy nisko przy nim, zamiast od razu odlatywac
+CZUWANIE_PROMIEN_KM = 0.09
+CZUWANIE_MAKS_BEZ_DECYZJI = 60  # tyle tickow (5 min symulacji) dron czeka na decyzje operatora
+CZUWANIE_SLUZBY = 30            # po przekazaniu sluzbom - do ich przyjazdu
+CZUWANIE_PO_POMOCY = 16         # po zamknieciu zgloszenia - upewnia sie, ze sytuacja jest opanowana
+CZUWANIE_MAKS = 160             # twardy limit czuwania przy jednym zgloszeniu
 ORBITA_KM = 0.35
 ORBITA_PRZEKAZNIKA_KM = 0.15
 ZUZYCIE_BATERII = 0.12
@@ -65,7 +71,8 @@ OPIS_FAZY = {
     "patrol": "Patrol regionu — szuka osób w panice i zagrożeń",
     "rtb": "Powrót na stację (bateria)", "ladowanie": "Wymiana baterii i uzupełnienie apteczki",
     "utracony": "UTRACONY — brak telemetrii", "wezwanie": "Wzywa grupę przez głośnik ({s})",
-    "prowadzi": "Prowadzi grupę w bezpieczne miejsce", "obserwuje": "Na miejscu zdarzenia ({s})",
+    "prowadzi": "Prowadzi grupę w bezpieczne miejsce", "obserwuje": "Na miejscu zdarzenia ({s}) — udziela pomocy",
+    "czuwa": "Czuwa przy zgłoszeniu ({s})",
     "uziemiony": "Uziemiony na stacji — opad powyżej limitu IP43",
 }
 
@@ -297,7 +304,7 @@ class Symulator:
                 "trasa": trasa, "trasa_idx": random.randrange(len(trasa)), "postoj": 0,
                 "predkosc": random.uniform(0.75, 1.25), "orbita_kier": random.choice((1, -1)),
                 "zapas": dict(d["zaopatrzenie"]), "zapas_start": dict(d["zaopatrzenie"]), "obszar": False,
-                "odporny": False,
+                "odporny": False, "czuwa": None,
             }
         if self.obszar:
             # drony najblizsze miejscu zdarzenia przechodza na patrol wokol niego, reszta pilnuje swoich regionow
@@ -655,7 +662,7 @@ class Symulator:
             self._zdarzenie(d["id"], None, "INFO", f'{d["nazwa"]}: bateria {d["bateria"]:.0f}% — lot na stację '
                             f'{stacja["id"] + " " + stacja["nazwa"] if stacja else "CZK"}, zadania przekazane.')
             self._przekaz_zadania(d)
-            d["faza"] = "rtb"
+            d["faza"], d["czuwa"] = "rtb", None
 
         if d["faza"] == "rtb":
             s = self.stacje.get(d.get("stacja_rtb") or "")
@@ -679,10 +686,17 @@ class Symulator:
             self._wykonuj_zadanie(d, d["zadanie"])
             return
 
+        if d["faza"] == "czuwa":
+            self._czuwaj(d)
+            if d["faza"] == "czuwa":
+                return
+            # koniec czuwania - w tym samym ticku dron rusza dalej patrolem (bez przystanku)
         if d["faza"] in ("orbita", "przekaznik") and d["cel"]:
             self._orbituj(d, d["cel"], ORBITA_PRZEKAZNIKA_KM if d["faza"] == "przekaznik" else ORBITA_KM)
         elif d["faza"] == "patrol":
             punkt = d["trasa"][d["trasa_idx"]]
+            if d["postoj"] > 0 and _km((d["lat"], d["lon"]), d["postoj_pkt"]) > 0.3:
+                d["postoj"] = 0  # postoj przerwany czuwaniem/zadaniem - nie wracamy skokiem do starego punktu
             if d["postoj"] > 0:
                 d["postoj"] -= 1
                 self._orbituj(d, d["postoj_pkt"], 0.12)
@@ -694,6 +708,68 @@ class Symulator:
                     d["postoj"], d["postoj_pkt"], d["orbita_r"] = random.randint(2, 6), punkt, 0.0
             if self.scenariusz_id == "patrol":
                 self._losowe_wykrycie(d)
+
+    # ------------------------------------------------------------------ czuwanie przy zgloszeniu
+
+    def _rozpocznij_czuwanie(self, d, inc, srodek=None):
+        """Dron zostaje przy zdarzeniu (albo przy celu prowadzenia) - krazy nisko w jego poblizu."""
+        if d["czuwa"] and d["czuwa"]["inc"] == inc["id"]:
+            if srodek is not None:
+                d["czuwa"]["srodek"] = list(srodek)
+        else:
+            d["czuwa"] = {"inc": inc["id"], "start": self.tick_nr, "t_decyzji": None, "t_zamkniecia": None,
+                          "srodek": list(srodek or (inc["lat"], inc["lon"])), "faza_los": random.uniform(0, 6.3)}
+        d["faza"], d["orbita_r"], d["plan_cel"] = "czuwa", 0.0, None
+
+    def _koniec_czuwania(self, d, c, inc):
+        """(czy konczyc, komunikat do logu) - dron czeka na decyzje, a po niej 'az pomoc zrobi swoje'."""
+        if inc is None:
+            return True, None
+        if self.tick_nr - c["start"] >= CZUWANIE_MAKS:
+            return True, f'{d["nazwa"]}: koniec czuwania przy zgłoszeniu #{inc["id"]} — wraca do patrolu.'
+        if inc["decyzja"] is None:
+            if not inc["aktywny"]:
+                return True, None
+            if self.tick_nr - c["start"] >= CZUWANIE_MAKS_BEZ_DECYZJI:
+                return True, (f'{d["nazwa"]}: brak decyzji operatora przez {CZUWANIE_MAKS_BEZ_DECYZJI * SEK_NA_TICK // 60} min '
+                              f'— wraca do patrolu, zgłoszenie #{inc["id"]} nadal czeka.')
+            return False, None
+        if inc["decyzja"] == "odrzucone":
+            return True, None
+        if c["t_decyzji"] is None:
+            c["t_decyzji"] = self.tick_nr
+        if inc["decyzja"] == "sluzby" and not inc["akcja"]:
+            if self.tick_nr - c["t_decyzji"] >= CZUWANIE_SLUZBY:
+                return True, f'{d["nazwa"]}: służby na miejscu zgłoszenia #{inc["id"]} — dron wraca do patrolu.'
+            return False, None
+        # dron wyslany (albo sluzby + dron): czekamy, az dzialanie sie zakonczy, i jeszcze chwile po nim
+        if inc["aktywny"]:
+            return False, None
+        if c["t_zamkniecia"] is None:
+            c["t_zamkniecia"] = self.tick_nr
+        if self.tick_nr - c["t_zamkniecia"] >= CZUWANIE_PO_POMOCY:
+            return True, f'{d["nazwa"]}: pomoc przy zgłoszeniu #{inc["id"]} zakończona — dron wraca do patrolu.'
+        return False, None
+
+    def _czuwaj(self, d):
+        c = d["czuwa"]
+        if c is None:
+            d["faza"] = "patrol"
+            return
+        inc = self.incydenty.get(c["inc"])
+        koniec, komunikat = self._koniec_czuwania(d, c, inc)
+        if koniec:
+            d["czuwa"], d["faza"], d["plan_cel"] = None, "patrol", None
+            if komunikat:
+                self._zdarzenie(d["id"], inc["sektor"] if inc else None, "INFO", komunikat,
+                                extra={"inc_id": inc["id"]} if inc else None)
+            return
+        if _km((d["lat"], d["lon"]), c["srodek"]) > CZUWANIE_PROMIEN_KM * 2.5:
+            self._lec(d, c["srodek"])  # najpierw dolot w poblize zdarzenia
+            return
+        # zawis z lekkim dryfem: promien krazenia powoli "oddycha", zeby dron nie stal jak przyklejony
+        promien = CZUWANIE_PROMIEN_KM * (1.0 + 0.4 * math.sin(self.tick_nr * 0.35 + c["faza_los"]))
+        self._orbituj(d, c["srodek"], promien)
 
     def _rozpocznij_zadanie(self, d, z):
         d["skan"], d["orbita_r"] = 0, 0.0
@@ -740,14 +816,20 @@ class Symulator:
         if z.get("krok") is not None:
             self.kroki[z["krok"]]["stan"] = "wykonany"
         d["zadanie"] = None
-        # dron z grupy rejonu zdarzenia wraca do patrolu wokol niego, pozostale krazą nad miejscem rozpoznania
-        d["faza"] = "przekaznik" if z.get("przekaznik") else ("patrol" if d["obszar"] else "orbita")
+        # przekaznik trzyma pozycje; dron, ktory cos wykryl, czuwa przy tym; dron z grupy rejonu zdarzenia
+        # wraca do patrolu wokol niego, pozostale krazą nad miejscem rozpoznania
+        if z.get("przekaznik"):
+            d["faza"] = "przekaznik"
+        elif d["czuwa"]:
+            d["faza"] = "czuwa"
+        else:
+            d["faza"] = "patrol" if d["obszar"] else "orbita"
 
     def _akcja_na_miejscu(self, d, z):
         """Zadanie zlecone przez operatora: dolot, akcja (zrzut / komunikat z glosnika), obserwacja, raport."""
         inc = self.incydenty.get(z["inc"])
         if inc is None or not inc["aktywny"]:
-            d["zadanie"], d["faza"] = None, "orbita"
+            d["zadanie"], d["faza"] = None, "czuwa" if d["czuwa"] else "patrol"
             return
         inc["wykonawca"] = d["id"]
         if d["faza"] == "lot":
@@ -777,9 +859,10 @@ class Symulator:
                      "obserwacja": "obserwacja zakończona"}[z["rodzaj"]]
             inc["wynik"] = f'{d["nazwa"]}: {wynik}' + (f' ({", ".join(inc["zrzut"])})' if inc["zrzut"] else "")
             self._zdarzenie(d["id"], inc["sektor"], "INFO",
-                            f'{d["nazwa"]}: zgłoszenie #{inc["id"]} — {wynik}, dron wraca do zadań.',
+                            f'{d["nazwa"]}: zgłoszenie #{inc["id"]} — {wynik}, dron zostaje chwilę na miejscu.',
                             extra={"inc_id": inc["id"]})
-            d["zadanie"], d["faza"] = None, "patrol" if d["obszar"] else "orbita"
+            d["zadanie"] = None
+            self._rozpocznij_czuwanie(d, inc, d["cel"])
 
     # ------------------------------------------------------------------ zgloszenia i decyzje operatora
 
@@ -809,6 +892,13 @@ class Symulator:
             "podazyli": None, "w_schronie": None, "t_wezwania": None, "zrzut": [], "wynik": None,
         }
         self.incydenty[inc["id"]] = inc
+        # dron zostaje przy tym, co wykryl, dopoki operator nie zdecyduje / pomoc nie dotrze
+        # (zadania ze skryptu i zlecenia operatora maja pierwszenstwo - czuwanie wraca po nich)
+        if d["zadanie"] is None:
+            self._rozpocznij_czuwanie(d, inc)
+        else:
+            d["czuwa"] = {"inc": inc["id"], "start": self.tick_nr, "t_decyzji": None, "t_zamkniecia": None,
+                          "srodek": [lat, lon], "faza_los": random.uniform(0, 6.3)}
         twarze = random.randint(max(0, osoby - 3), osoby) if osoby else 0
         d["twarze"] += twarze
         tekst = f'{d["sensor"]}: {opis}. Poz.: {czk_logic.wspolrzedne_txt(lat, lon)}. Zgłoszenie ze zdjęciem czeka na decyzję operatora.'
@@ -971,7 +1061,7 @@ class Symulator:
     def _prowadz(self, d, z):
         inc = self.incydenty.get(z["inc"])
         if inc is None or not inc["aktywny"] or inc["schron"] is None:
-            d["zadanie"], d["faza"] = None, "orbita"
+            d["zadanie"], d["faza"] = None, "czuwa" if d["czuwa"] else "patrol"
             return
         inc["wykonawca"] = d["id"]
         if d["faza"] == "lot":
@@ -1032,7 +1122,8 @@ class Symulator:
                         f'Ewakuacja zakończona ({inc["sektor"]}): {inc["w_schronie"]} os. {inc["schron"]["w"]} '
                         f'({inc["schron"]["adres"]}). Za dronem poszło {proc}% osób, czas {czas_s // 60}:{czas_s % 60:02d}.',
                         osoby=inc["w_schronie"], extra={"inc_id": inc["id"], "analiza": True})
-        d["zadanie"], d["faza"], d["cel"] = None, "orbita", [inc["schron"]["lat"], inc["schron"]["lon"]]
+        d["zadanie"], d["cel"] = None, [inc["schron"]["lat"], inc["schron"]["lon"]]
+        self._rozpocznij_czuwanie(d, inc, d["cel"])  # chwila nad celem, az grupa jest bezpieczna
 
     # ------------------------------------------------------------------ komunikaty glosowe
 
@@ -1133,11 +1224,11 @@ class Symulator:
                            + ". Rój rekonfiguruje sieć — brak pojedynczego punktu awarii."))
             self._przekaz_zadania(d)
             d["bufor"] = []
-            d["faza"] = "utracony"
+            d["faza"], d["czuwa"] = "utracony", None
         else:
             d.update({"zywy": True, "bateria": 100.0, "zadanie": None, "kolejka": [], "bufor": [], "plan": [],
                       "plan_cel": None, "zapas": dict(d["zapas_start"]),
-                      "faza": "patrol"})
+                      "faza": "patrol", "czuwa": None})
             d["lat"], d["lon"] = self._przy_stacji(d["stacja"], int(d["id"][1:]))
             self._dostarcz(self._ev_sys(d["id"], "MESH", f'{d["nazwa"]}: nowy BSP startuje ze stacji {d["stacja"]}.'))
         self._przelicz_mesh()
@@ -1175,6 +1266,7 @@ class Symulator:
             "sluzby": t["sluzby"], "sluzby_powiadomione": i["sluzby_powiadomione"],
             "zalecenie": zalecenie, "rodzaj_akcji": i["rodzaj_akcji"] or rodzaj, "akcja": i["akcja"],
             "wykonawca": wyk["nazwa"] if wyk else None, "schron": i["schron"], "osoby_grupy": i["osoby"],
+            "czuwa": [d["nazwa"] for d in self.drony.values() if d["faza"] == "czuwa" and d["czuwa"] and d["czuwa"]["inc"] == i["id"]],
             "podazyli": i["podazyli"], "w_schronie": i["w_schronie"], "zrzut": i["zrzut"], "wynik": i["wynik"],
         }
 
@@ -1198,6 +1290,20 @@ class Symulator:
                           "schron": [i["schron"]["lat"], i["schron"]["lon"]]})
         return wynik
 
+    def _opis_czuwania(self, d):
+        inc = self.incydenty.get(d["czuwa"]["inc"])
+        if inc is None:
+            return "Czuwa przy zgłoszeniu"
+        if inc["decyzja"] is None:
+            stan = "czeka na decyzję operatora"
+        elif inc["aktywny"] and inc["akcja"]:
+            stan = "trwa udzielanie pomocy"
+        elif inc["decyzja"] == "sluzby" and not inc["akcja"]:
+            stan = "czeka na przyjazd służb"
+        else:
+            stan = "pomoc udzielona, obserwuje sytuację"
+        return f'Czuwa przy zgłoszeniu #{inc["id"]} ({inc["sektor"]}) — {stan}'
+
     def drony_publiczne(self):
         wynik = []
         for d in self.drony.values():
@@ -1207,8 +1313,10 @@ class Symulator:
                 "id": d["id"], "nazwa": d["nazwa"], "tryb": d["tryb"], "sensor": d["sensor"], "stacja": d["stacja"],
                 "lat": round(d["lat"], 5), "lon": round(d["lon"], 5), "kurs": round(d["kurs"]),
                 "bateria": round(d["bateria"], 1), "zywy": d["zywy"], "faza": d["faza"],
-                "status_misji": ("Patrol rejonu zdarzenia — rozpoznanie z powietrza" if d["faza"] == "patrol" and d["obszar"]
+                "status_misji": (self._opis_czuwania(d) if d["faza"] == "czuwa" and d["czuwa"]
+                                 else "Patrol rejonu zdarzenia — rozpoznanie z powietrza" if d["faza"] == "patrol" and d["obszar"]
                                  else OPIS_FAZY.get(d["faza"], d["faza"]).format(s=sektor)),
+                "czuwa_inc": d["czuwa"]["inc"] if d["faza"] == "czuwa" and d["czuwa"] else None,
                 "odporny": d["odporny"], "spec": SPEC_DESZCZ if d["odporny"] else SPEC_STD,
                 "sektor": self._sektor_dla(d["lat"], d["lon"]), "hops": d["hops"],
                 "twarze": d["twarze"], "kolejka": len(d["kolejka"]) + (1 if d["zadanie"] else 0),
