@@ -19,15 +19,9 @@ Nie będę robił w konia Hermes to...
    cd Hermes
    ```
 
-2. **Create a virtual environment (recommended):**
+2. **Run start.bat**
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
+   It ill install every dependency, and automatically run the HERMES system.
    ```
 
 ## Getting Started
@@ -42,7 +36,7 @@ The server will typically be available at `http://127.0.0.1:8000`.
 
 ## Project Structure
 
-- `start.bat`: Entry point of the application.
+- `start.bat`: Installs every dependency, run on every boot, it wont download anything else besides the dependencies.
 - `db.py`: Database management and connectivity.
 - `edge_ai.py`: Edge AI logic and processing.
 - `anonymizer.py`: Data anonymization tools for privacy compliance.
