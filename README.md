@@ -38,7 +38,7 @@ The server will typically be available at `http://127.0.0.1:8000`.
 
 - `start.bat`: Installs every dependency, run on every boot, it wont download anything else besides the dependencies.
 - `db.py`: Database management and connectivity.
-- `edge_ai.py`: Edge AI logic and processing.
+- `edge_ai.py`:  Tensorflow processing.
 - `anonymizer.py`: Data anonymization tools for privacy compliance.
 - `data/`: Directory containing system data and resources.
 - `static/` & `templates/`: Frontend assets and HTML templates.
