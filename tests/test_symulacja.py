@@ -186,7 +186,7 @@ def test_dron_czuwa_przy_wykrytym_zdarzeniu_az_do_przyjazdu_sluzb(sym):
     assert d["faza"] == "patrol" and d["czuwa"] is None
 
 
-def test_odrzucenie_zwalnia_drona_a_brak_decyzji_ma_limit(sym):
+def test_odrzucenie_zwalnia_drona_a_bez_decyzji_dron_zostaje(sym):
     sym.uruchom_scenariusz("patrol")
     d, inc = _wykrycie_testowe(sym, "D1")
     _ticki(sym, 5)
@@ -194,8 +194,44 @@ def test_odrzucenie_zwalnia_drona_a_brak_decyzji_ma_limit(sym):
     _ticki(sym, 1)
     assert d["faza"] == "patrol"
     d2, inc2 = _wykrycie_testowe(sym, "D3")
-    _ticki(sym, simulator.CZUWANIE_MAKS_BEZ_DECYZJI + 2)
-    assert d2["faza"] != "czuwa" and inc2["aktywny"] and inc2["decyzja"] is None
+    zgloszenia = len([i for i in sym.incydenty.values() if i["dron_id"] == "D3"])
+    _ticki(sym, 120)
+    # bez decyzji dron czuwa dalej przy swoim zdarzeniu i nie zglasza nowych
+    assert d2["faza"] == "czuwa" and d2["czuwa"]["inc"] == inc2["id"]
+    assert len([i for i in sym.incydenty.values() if i["dron_id"] == "D3"]) == zgloszenia
+
+
+def test_zadysponowanie_powiadamia_sluzby_i_zleca_dzialanie_drona(sym):
+    sym.uruchom_scenariusz("patrol")
+    d, inc = _wykrycie_testowe(sym, "D1")
+    _ticki(sym, 3)
+    assert sym.decyzja(inc["id"], "zadysponuj")
+    assert inc["decyzja"] == "dron" and inc["sluzby_powiadomione"] and inc["rodzaj_akcji"] == "zrzut"
+    alert = [z["opis"] for z in db.pobierz_zdarzenia(limit=5000) if z["status"] == "SLUZBY"][0]
+    assert "Policja" in alert and "° N" in alert
+    assert not sym.decyzja(inc["id"], "zadysponuj"), "druga decyzja do tego samego zgloszenia jest odrzucana"
+    _ticki(sym, 60)
+    assert inc["zrzut"], "dron powinien dostarczyc apteczke"
+
+
+def test_prowadzenie_do_najblizszego_schronu_po_drogach(sym):
+    assert sym.drogi is not None, "brak data/drogi.json (python data_sources.py --odswiez-drogi)"
+    sym.uruchom_scenariusz("alarm")
+    start = (51.1079, 17.0385)  # Rynek
+    cel = sym._cel_prowadzenia(*start)
+    trasa = cel["trasa"]
+    assert cel["do"] == "do schronu" and len(trasa) >= 2
+    # trasa ulicami jest co najmniej tak dluga jak odcinek w linii prostej, a konczy sie przy schronie
+    prosta = simulator._km(start, (cel["lat"], cel["lon"]))
+    assert cel["odleglosc_km"] >= prosta * 0.95
+    assert simulator._km(trasa[-1], (cel["lat"], cel["lon"])) < 0.01
+    # zaden z pobliskich schronow nie jest blizej po drogach
+    assert sym.drogi.najblizszy_wezel(*start) is not None
+    pobliskie = sorted(sym.cele_schrony.values(), key=lambda s: simulator._km(start, (s["lat"], s["lon"])))[:60]
+    for inny in pobliskie:
+        t = sym.drogi.trasa(start, (inny["lat"], inny["lon"]))
+        if t:
+            assert t[1] >= cel["odleglosc_km"] - 0.006  # odleglosc celu jest zaokraglona do 10 m
 
 
 def test_planer_omija_wielokat():

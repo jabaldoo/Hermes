@@ -42,24 +42,25 @@ def rekomenduj_akcje(typ, sektor_id=None, liczba_osob=0):
 # zalewowa; z plonacego lasu - na punkt zbiorki poza lasem; przy pozarze budynku gapiow trzeba odsunac.
 KONTEKSTY = ("schron", "powodz", "pozar_las", "pozar_budynek", "patrol")
 
+# Opisy tego, co zrobi dron po decyzji "Zadysponuj sluzby" (sluzby dostaja zgloszenie niezaleznie od tego)
 _PROWADZENIE = {
-    "schron": "Wyślij drona z głośnikiem — zaprowadzi ludzi do najbliższego schronu.",
-    "powodz": "Wyślij drona z głośnikiem — wyprowadzi ludzi ze strefy zalewowej do bezpiecznego budynku.",
-    "pozar_las": "Wyślij drona z głośnikiem — wyprowadzi ludzi z lasu do punktu zbiórki.",
+    "schron": "Dron z głośnikiem zaprowadzi ludzi ulicami do najbliższego schronu.",
+    "powodz": "Dron z głośnikiem wyprowadzi ludzi ulicami ze strefy zalewowej do bezpiecznego budynku.",
+    "pozar_las": "Dron z głośnikiem wyprowadzi ludzi z lasu do punktu zbiórki.",
 }
 _ODSUNIECIE = {
-    "pozar_budynek": "Wyślij drona z głośnikiem — poprosi ludzi o odsunięcie się od budynku i zwolnienie dojazdu dla straży.",
-    "patrol": "Wyślij drona z głośnikiem — poprosi ludzi o opuszczenie niebezpiecznego miejsca.",
+    "pozar_budynek": "Dron z głośnikiem poprosi ludzi o odsunięcie się od budynku i zwolnienie dojazdu dla straży.",
+    "patrol": "Dron z głośnikiem poprosi ludzi o opuszczenie niebezpiecznego miejsca.",
 }
 _AKCJE_DRONA = {
-    "uspokojenie": "Wyślij drona z głośnikiem — uspokoi tłum i wskaże bezpieczne wyjście.",
-    "zrzut": "Wyślij drona z apteczką — zrzuci zaopatrzenie medyczne, zanim dotrą służby.",
-    "ostrzezenie": "Wyślij drona z głośnikiem — ostrzeże ludzi i wezwie ich do opuszczenia rejonu.",
-    "obserwacja": "Wyślij drona — będzie obserwował miejsce zdarzenia do przyjazdu służb.",
+    "uspokojenie": "Dron z głośnikiem uspokoi tłum i wskaże bezpieczne wyjście.",
+    "zrzut": "Dron z apteczką zrzuci zaopatrzenie medyczne, zanim dotrą służby.",
+    "ostrzezenie": "Dron z głośnikiem ostrzeże ludzi i wezwie ich do opuszczenia rejonu.",
+    "obserwacja": "Dron będzie obserwował miejsce zdarzenia do przyjazdu służb.",
 }
 _OBSERWACJA_WG_TYPU = {
-    "POZAR": "Wyślij drona z termowizją — będzie śledził rozwój pożaru i przekazywał obraz służbom.",
-    "ZATOR": "Wyślij drona — obraz z góry pomoże policji wyznaczyć objazd.",
+    "POZAR": "Dron z termowizją będzie śledził rozwój pożaru i przekazywał obraz służbom.",
+    "ZATOR": "Dron przekaże obraz z góry, który pomoże policji wyznaczyć objazd.",
 }
 
 

@@ -494,8 +494,58 @@ def pobierz_odre():
         return json.load(f)
 
 
+_PLIK_DROG = os.path.join(_TUTAJ, "data", "drogi.json")
+# drogi, ktorymi moga isc piesi prowadzeni przez drona (bez autostrad; bez dojazdow do posesji i parkingow)
+_TYPY_DROG = ("trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|"
+              "unclassified|residential|living_street|pedestrian|service")
+
+
+def przetworz_drogi(elementy):
+    """Elementy Overpass (drogi + wezly) -> zwarty graf: wezly [lat*1e5, lon*1e5] i krawedzie [i, j]."""
+    wezly = {e["id"]: (e["lat"], e["lon"]) for e in elementy if e["type"] == "node"}
+    indeks, lista, krawedzie = {}, [], set()
+    for e in elementy:
+        if e["type"] != "way":
+            continue
+        ids = [n for n in e.get("nodes", []) if n in wezly]
+        for a, b in zip(ids, ids[1:]):
+            for n in (a, b):
+                if n not in indeks:
+                    indeks[n] = len(lista)
+                    lat, lon = wezly[n]
+                    lista.append([round(lat * 1e5), round(lon * 1e5)])
+            i, j = indeks[a], indeks[b]
+            if i != j:
+                krawedzie.add((min(i, j), max(i, j)))
+    return lista, sorted(krawedzie)
+
+
+def odswiez_drogi(bbox=(51.04, 16.93, 51.16, 17.17)):
+    """Siec drog Wroclawia z OpenStreetMap (Overpass, ODbL) - trasy prowadzenia ludzi do schronow."""
+    s, w, n, e = bbox
+    q = (f'[out:json][timeout:180];way["highway"~"^({_TYPY_DROG})$"]["service"!~"driveway|parking_aisle|drive-through"]'
+         f'["access"!~"private|no"]["foot"!="no"]({s},{w},{n},{e});out body;>;out skel qt;')
+    r = requests.post(OVERPASS_URL, data={"data": q}, timeout=(5, 240), headers={"User-Agent": "HERMES-demo/1.0"})
+    r.raise_for_status()
+    wezly, krawedzie = przetworz_drogi(r.json()["elements"])
+    with open(_PLIK_DROG, "w", encoding="utf-8") as f:
+        json.dump({"zrodlo": "Sieć dróg: OpenStreetMap (highway), © współtwórcy OSM, ODbL",
+                   "pobrano": time.strftime("%Y-%m-%d"), "wezly": wezly, "krawedzie": krawedzie},
+                  f, ensure_ascii=False, separators=(",", ":"))
+    return len(wezly), len(krawedzie)
+
+
+def pobierz_drogi():
+    if not os.path.exists(_PLIK_DROG):
+        return None
+    with open(_PLIK_DROG, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 if __name__ == "__main__":
-    if "--odswiez-strefy" in sys.argv:
+    if "--odswiez-drogi" in sys.argv:
+        print("Zapisano siec drog: %d wezlow, %d krawedzi" % odswiez_drogi())
+    elif "--odswiez-strefy" in sys.argv:
         print(f"Zapisano {odswiez_strefy_wojskowe()} stref wojskowych")
     elif "--odswiez-osiedla" in sys.argv:
         print(f"Zapisano {odswiez_osiedla()} osiedli")
@@ -505,4 +555,5 @@ if __name__ == "__main__":
         odswiez_budynki()
         print(f"Zapisano {len(pobierz_budynki()['budynki'])} wysokich budynkow do {_PLIK_BUDYNKOW}")
     else:
-        print("Uzycie: python data_sources.py --odswiez-schrony | --odswiez-budynki | --odswiez-strefy | --odswiez-osiedla")
+        print("Uzycie: python data_sources.py --odswiez-schrony | --odswiez-budynki | --odswiez-strefy | --odswiez-osiedla"
+              " | --odswiez-drogi")

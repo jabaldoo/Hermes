@@ -218,8 +218,8 @@ async def api_incydenty():
 
 @app.post("/api/decyzja/{inc_id}/{akcja}")
 async def api_decyzja(inc_id: int, akcja: str):
-    if akcja not in ("dron", "sluzby", "odrzuc"):
-        raise HTTPException(400, "Dozwolone: dron, sluzby, odrzuc")
+    if akcja not in ("zadysponuj", "dron", "sluzby", "odrzuc"):
+        raise HTTPException(400, "Dozwolone: zadysponuj, dron, sluzby, odrzuc")
     if not _sym().decyzja(inc_id, akcja):
         raise HTTPException(409, "Zgloszenie zamkniete lub decyzja juz podjeta")
     await _sym().wyslij()

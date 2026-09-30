@@ -265,13 +265,14 @@ function aktualizujGrupy(grupy) {
       o = {
         idzie: L.marker([g.lat, g.lon], { pane: "pGrupy", interactive: false, icon: L.divIcon({ className: "znacznik-dron", iconSize: [0, 0], html: "" }) }).addTo(M.mapa),
         zostali: L.marker(g.start, { pane: "pGrupy", interactive: false, icon: ikonaHtml("") }),
-        linia: L.polyline([[g.lat, g.lon], g.schron], { pane: "pMesh", color: "#34d399", weight: 2.5, dashArray: "2 7", className: "trasa-ewak", interactive: false }).addTo(M.mapa),
+        // trasa prowadzenia biegnie ulicami (siec drog OSM), nie w linii prostej
+        linia: L.polyline([[g.lat, g.lon], ...(g.trasa || [g.schron])], { pane: "pMesh", color: "#34d399", weight: 3, dashArray: "2 7", className: "trasa-ewak", interactive: false }).addTo(M.mapa),
         syg: "",
       };
       M.grupy[k] = o;
     }
     o.idzie.setLatLng([g.lat, g.lon]);
-    o.linia.setLatLngs([[g.lat, g.lon], g.schron]);
+    o.linia.setLatLngs([[g.lat, g.lon], ...(g.trasa || [g.schron])]);
     const syg = `${g.n}|${g.prowadzona}|${g.pozostali}`;
     if (syg !== o.syg) {
       o.syg = syg;
@@ -353,7 +354,7 @@ function podswietlIncydent(inc) {
   if (!inc) return;
   M.pingi[inc.id]?.getElement()?.firstElementChild?.classList.add("podswietlony");
   if (inc.schron && inc.aktywny) {
-    L.polyline([[inc.lat, inc.lon], [inc.schron.lat, inc.schron.lon]], { pane: "pMesh", color: "#34d399", weight: 2.5, dashArray: "2 7", className: "trasa-ewak", interactive: false }).addTo(M.podswietlenie);
+    L.polyline([[inc.lat, inc.lon], ...(inc.schron.trasa || [[inc.schron.lat, inc.schron.lon]])], { pane: "pMesh", color: "#34d399", weight: 2.5, dashArray: "2 7", className: "trasa-ewak", interactive: false }).addTo(M.podswietlenie);
     L.circleMarker([inc.schron.lat, inc.schron.lon], { pane: "pMesh", radius: 14, color: "#34d399", weight: 2.5, fill: false, interactive: false }).addTo(M.podswietlenie);
   }
 }
@@ -705,13 +706,13 @@ function htmlFoto(i) {
     <figcaption>${esc(f.opis)} · fot. <a href="${esc(f.zrodlo)}" target="_blank" rel="noopener">${esc(f.autor)}</a>, ${esc(f.licencja)}</figcaption></figure>`;
 }
 
+// jedna decyzja: sluzby (Policja / PSP / ZRM wg typu zdarzenia) + dzialanie drona na miejscu
 function htmlPrzyciskowDecyzji(i) {
+  if (!i.czeka) return "";
   const sluzby = i.sluzby.map((j) => NAZWY_SLUZB[j]).join(" + ");
-  const czeka = i.czeka;
-  const moznaSluzby = i.aktywny && i.sluzby.length && !i.sluzby_powiadomione;
-  return `${czeka ? `<button class="btn-dec wyslij" data-decyzja="dron" data-id="${i.id}">Wyślij drona</button>` : ""}
-    ${moznaSluzby ? `<button class="btn-dec sluzby" data-decyzja="sluzby" data-id="${i.id}">Przekaż: ${esc(sluzby)}</button>` : ""}
-    ${czeka ? `<button class="btn-dec odrzuc" data-decyzja="odrzuc" data-id="${i.id}">Odrzuć</button>` : ""}`;
+  return `<button class="btn-dec wyslij" data-decyzja="zadysponuj" data-id="${i.id}"
+      title="${esc(sluzby ? `Powiadamia: ${sluzby} (ze współrzędnymi) i zleca działanie drona na miejscu` : "Zleca działanie drona na miejscu")}">Zadysponuj służby</button>
+    <button class="btn-dec odrzuc" data-decyzja="odrzuc" data-id="${i.id}">Odrzuć</button>`;
 }
 
 function htmlAkcjiDrona(i) {
@@ -739,10 +740,8 @@ function htmlAkcjiDrona(i) {
 function htmlStanuZgloszenia(i) {
   if (!i.aktywny) return `<div class="inc-stan">ZAMKNIĘTE — ${esc(i.wynik || "")}</div>`;
   if (i.czeka) return '<div class="inc-stan czeka">CZEKA NA DECYZJĘ OPERATORA</div>';
-  const czesci = [];
-  if (i.decyzja === "dron") czesci.push("wysłano drona");
-  if (i.sluzby_powiadomione) czesci.push("przekazano służbom");
-  return `<div class="inc-stan">DECYZJA: ${czesci.join(" + ").toUpperCase()}</div>`;
+  const tekst = i.sluzby_powiadomione ? "ZADYSPONOWANO SŁUŻBY" : i.decyzja === "dron" ? "ZADYSPONOWANO DZIAŁANIA" : "";
+  return tekst ? `<div class="inc-stan">DECYZJA: ${tekst}</div>` : "";
 }
 
 function renderujIncydenty(lista) {

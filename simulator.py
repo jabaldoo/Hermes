@@ -16,6 +16,7 @@ from collections import Counter, deque
 import czk_logic
 import data_sources
 import db
+import drogi
 import edge_ai
 
 _TUTAJ = os.path.dirname(os.path.abspath(__file__))
@@ -30,10 +31,10 @@ TICKI_WEZWANIA = 4
 TICKI_OBSERWACJI = 20          # dron-wykonawca zostaje na miejscu, symulujac udzielanie pomocy
 # Czuwanie: dron, ktory wykryl zdarzenie (albo udzielil pomocy), krazy nisko przy nim, zamiast od razu odlatywac
 CZUWANIE_PROMIEN_KM = 0.09
-CZUWANIE_MAKS_BEZ_DECYZJI = 60  # tyle tickow (5 min symulacji) dron czeka na decyzje operatora
+# bez decyzji operatora dron czeka przy zdarzeniu bez limitu czasu (az do decyzji albo niskiej baterii)
 CZUWANIE_SLUZBY = 30            # po przekazaniu sluzbom - do ich przyjazdu
 CZUWANIE_PO_POMOCY = 16         # po zamknieciu zgloszenia - upewnia sie, ze sytuacja jest opanowana
-CZUWANIE_MAKS = 160             # twardy limit czuwania przy jednym zgloszeniu
+CZUWANIE_MAKS = 160             # twardy limit czuwania liczony od decyzji operatora
 ORBITA_KM = 0.35
 ORBITA_PRZEKAZNIKA_KM = 0.15
 ZUZYCIE_BATERII = 0.12
@@ -167,6 +168,9 @@ def _przecina(p0, p1, r):
     return _odcinek_przecina_wielokat(_xy(p0), _xy(p1), w, (w[0][0], w[0][1], w[2][0], w[2][1]))
 
 
+_CACHE_DROG = {}
+
+
 class Symulator:
     def __init__(self):
         self.mock = _wczytaj_mock()
@@ -183,6 +187,19 @@ class Symulator:
         zalew = odra["strefa_zalewowa"] if odra else self.mock["hydrografia_mock"]["strefa_zalewowa"]
         self.zalew_xy = [_xy(p) for p in zalew]
         self.las_xy = [_xy(p) for p in self.mock["lasy_bdl_mock"]["las"]]
+        # siec drog (OSM): prowadzenie ludzi ulicami; wezly w strefach zakazu lotow sa wylaczone z tras.
+        # Dane sa statyczne - graf (ok. 120 tys. wezlow) budujemy raz na proces i wspoldzielimy.
+        if "siec" not in _CACHE_DROG:
+            dane_drog = data_sources.pobierz_drogi()
+            self.drogi = drogi.SiecDrog(dane_drog, zablokowany=lambda la, lo: self._w_strefie(la, lo, MARGINES_STREFY_KM)
+                                        ) if dane_drog else None
+            _CACHE_DROG["siec"] = self.drogi
+            _CACHE_DROG["schrony"] = self._na_drogi(self.schrony)
+            _CACHE_DROG["poza_zalewem"] = self._na_drogi(
+                [s for s in self.schrony if not _w_wielokacie(_xy((s["lat"], s["lon"])), self.zalew_xy)])
+        self.drogi = _CACHE_DROG["siec"]
+        self.cele_schrony = _CACHE_DROG["schrony"]
+        self.cele_poza_zalewem = _CACHE_DROG["poza_zalewem"]
         self.broadcast = None
         self.pauza = False
         self.predkosc = 1
@@ -369,8 +386,28 @@ class Symulator:
             return "pozar_las" if self.wariant == "las" else "pozar_budynek"
         return "patrol"
 
+    def _na_drogi(self, punkty):
+        """Punkty (schrony) przypiete do najblizszego wezla sieci drog: {wezel: punkt}."""
+        if self.drogi is None:
+            return {}
+        cele = {}
+        for p in punkty:
+            w = self.drogi.najblizszy_wezel(p["lat"], p["lon"])
+            if w is not None:
+                cele.setdefault(w, p)
+        return cele
+
+    @staticmethod
+    def _zapisz_trase(trasa, cel):
+        """Trasa po drogach do wyslania (uproszczona, zaokraglona) + ostatni odcinek do samego celu."""
+        punkty = drogi.uprosc(trasa) + [(cel[0], cel[1])]
+        return [[round(a, 5), round(b, 5)] for a, b in punkty]
+
     def _cel_prowadzenia(self, lat, lon):
-        """Dokad dron prowadzi ludzi: schron (alarm), budynek poza strefa zalewowa (powodz), skraj lasu (pozar lasu)."""
+        """
+        Dokad dron prowadzi ludzi: schron (alarm), budynek poza strefa zalewowa (powodz), skraj lasu (pozar lasu).
+        Cel i trasa licza sie po sieci drog - najblizszy schron to ten najblizszy pieszo ulicami, nie w linii prostej.
+        """
         kontekst = self._kontekst()
         if kontekst == "pozar_las":
             p, w = _xy((lat, lon)), self.las_xy
@@ -379,21 +416,30 @@ class Symulator:
             dx, dy = brzeg[0] - cx, brzeg[1] - cy
             dl = math.hypot(dx, dy) or 1.0
             cel = self._poza_strefa(_ll((brzeg[0] + dx / dl * 0.35, brzeg[1] + dy / dl * 0.35)))
-            return {"id": "ZBIORKA", "adres": "punkt zbiórki na skraju lasu", "lat": cel[0], "lon": cel[1],
-                    "odleglosc_km": round(_km((lat, lon), cel), 2), "do": "do punktu zbiórki poza lasem",
-                    "w": "w punkcie zbiórki", "adres_w_komunikacie": False, "dopisek": " Oddalaj się od dymu."}
-        if kontekst == "powodz":
-            # schron w piwnicy przy powodzi to pulapka - wybieramy budynek z listy KG PSP lezacy poza strefa zalewowa
-            cel = czk_logic.najblizsze_schrony(lat, lon, self.schrony, n=1,
-                                               wyklucz=lambda s: _w_wielokacie(_xy((s["lat"], s["lon"])), self.zalew_xy))
-            if not cel:
-                return None
-            return dict(cel[0], do="w bezpieczne miejsce poza strefą zalewową", w="w bezpiecznym miejscu",
-                        adres_w_komunikacie=True, dopisek=" Nie schodź do piwnic ani garaży podziemnych.")
-        cel = czk_logic.najblizsze_schrony(lat, lon, self.schrony, n=1)
-        if not cel:
-            return None
-        return dict(cel[0], do="do schronu", w="w schronie", adres_w_komunikacie=True, dopisek="")
+            wynik = {"id": "ZBIORKA", "adres": "punkt zbiórki na skraju lasu", "lat": cel[0], "lon": cel[1],
+                     "odleglosc_km": round(_km((lat, lon), cel), 2), "do": "do punktu zbiórki poza lasem",
+                     "w": "w punkcie zbiórki", "adres_w_komunikacie": False, "dopisek": " Oddalaj się od dymu."}
+            trasa = self.drogi.trasa((lat, lon), cel) if self.drogi else None
+            if trasa:
+                wynik["trasa"] = self._zapisz_trase(trasa[0], cel)
+                wynik["odleglosc_km"] = round(trasa[1], 2)
+            return wynik
+
+        powodz = kontekst == "powodz"
+        # schron w piwnicy przy powodzi to pulapka - wtedy tylko budynki z listy KG PSP poza strefa zalewowa
+        cele = self.cele_poza_zalewem if powodz else self.cele_schrony
+        dopisek = {"do": "w bezpieczne miejsce poza strefą zalewową", "w": "w bezpiecznym miejscu",
+                   "adres_w_komunikacie": True, "dopisek": " Nie schodź do piwnic ani garaży podziemnych."} if powodz else \
+                  {"do": "do schronu", "w": "w schronie", "adres_w_komunikacie": True, "dopisek": ""}
+        wynik = self.drogi.najblizszy_cel((lat, lon), cele) if self.drogi and cele else None
+        if wynik:
+            schron, trasa, km = wynik
+            return dict(schron, **dopisek, trasa=self._zapisz_trase(trasa, (schron["lat"], schron["lon"])),
+                        odleglosc_km=round(km, 2))
+        # brak sieci drog (albo start daleko od drogi) - najblizszy w linii prostej
+        wyklucz = (lambda s: _w_wielokacie(_xy((s["lat"], s["lon"])), self.zalew_xy)) if powodz else None
+        cel = czk_logic.najblizsze_schrony(lat, lon, self.schrony, n=1, wyklucz=wyklucz)
+        return dict(cel[0], **dopisek) if cel else None
 
     def _przydziel_drony_krokom(self):
         """
@@ -725,19 +771,15 @@ class Symulator:
         """(czy konczyc, komunikat do logu) - dron czeka na decyzje, a po niej 'az pomoc zrobi swoje'."""
         if inc is None:
             return True, None
-        if self.tick_nr - c["start"] >= CZUWANIE_MAKS:
-            return True, f'{d["nazwa"]}: koniec czuwania przy zgłoszeniu #{inc["id"]} — wraca do patrolu.'
         if inc["decyzja"] is None:
-            if not inc["aktywny"]:
-                return True, None
-            if self.tick_nr - c["start"] >= CZUWANIE_MAKS_BEZ_DECYZJI:
-                return True, (f'{d["nazwa"]}: brak decyzji operatora przez {CZUWANIE_MAKS_BEZ_DECYZJI * SEK_NA_TICK // 60} min '
-                              f'— wraca do patrolu, zgłoszenie #{inc["id"]} nadal czeka.')
-            return False, None
+            # bez decyzji operatora dron zostaje przy zdarzeniu (nie odlatuje i nie zglasza nowych zdarzen)
+            return (not inc["aktywny"]), None
         if inc["decyzja"] == "odrzucone":
             return True, None
         if c["t_decyzji"] is None:
             c["t_decyzji"] = self.tick_nr
+        if self.tick_nr - c["t_decyzji"] >= CZUWANIE_MAKS:
+            return True, f'{d["nazwa"]}: koniec czuwania przy zgłoszeniu #{inc["id"]} — wraca do patrolu.'
         if inc["decyzja"] == "sluzby" and not inc["akcja"]:
             if self.tick_nr - c["t_decyzji"] >= CZUWANIE_SLUZBY:
                 return True, f'{d["nazwa"]}: służby na miejscu zgłoszenia #{inc["id"]} — dron wraca do patrolu.'
@@ -906,12 +948,34 @@ class Symulator:
                         extra={"inc_id": inc["id"], "zgloszenie": True}, lat=lat, lon=lon)
 
     def decyzja(self, inc_id, akcja):
-        """Decyzja operatora: 'dron' (wyslij drona), 'sluzby' (przekaz sluzbom), 'odrzuc'."""
+        """
+        Decyzja operatora. W panelu: 'zadysponuj' (sluzby + dzialanie drona na miejscu) albo 'odrzuc'.
+        'dron' i 'sluzby' zostaja jako pojedyncze kroki (API, testy).
+        """
         inc = self.incydenty.get(inc_id)
         if inc is None or not inc["aktywny"] or not inc["dostarczony"]:
             return False
         nazwa = czk_logic.TYPY[inc["typ"]]["nazwa"]
-        if akcja == "dron":
+        if akcja == "zadysponuj":
+            if inc["decyzja"] is not None or inc["akcja"] is not None:
+                return False
+            inc["decyzja"] = "dron"
+            inc["rodzaj_akcji"], opis_akcji = czk_logic.akcja_drona(inc["typ"], inc["osoby"], self._kontekst())
+            inc["akcja"] = "oczekuje"
+            sluzby = czk_logic.TYPY[inc["typ"]]["sluzby"]
+            wsp = czk_logic.wspolrzedne_txt(inc["lat"], inc["lon"])
+            if sluzby:
+                inc["sluzby_powiadomione"] = True
+                nazwy = ", ".join(czk_logic.NAZWY_SLUZB[j] for j in sluzby)
+                tekst = (f'Operator zadysponował służby do zgłoszenia #{inc["id"]} → {nazwy}: {nazwa} — {wsp} '
+                         f'(sektor {inc["sektor"]}). Na miejscu: {opis_akcji[0].lower()}{opis_akcji[1:]}')
+            else:
+                tekst = (f'Operator zadysponował działania do zgłoszenia #{inc["id"]} ({nazwa}, {inc["sektor"]}). '
+                         f'Na miejscu: {opis_akcji[0].lower()}{opis_akcji[1:]}')
+            self._dostarcz(self._ev_sys(None, "SLUZBY" if sluzby else "DECYZJA", tekst, sektor=inc["sektor"],
+                                        extra={"inc_id": inc["id"]}, lat=inc["lat"], lon=inc["lon"]))
+            self._przydziel_wykonawce(inc)
+        elif akcja == "dron":
             if inc["akcja"] is not None:
                 return False
             inc["decyzja"] = "dron"
@@ -1017,6 +1081,14 @@ class Symulator:
     def _zajety_zleceniem(x):
         return (x["zadanie"] is not None and x["zadanie"].get("inc") is not None) or any(z.get("inc") is not None for z in x["kolejka"])
 
+    def _czuwa_gdzie_indziej(self, x, inc):
+        """Dron zostaje przy swoim (innym, wciaz aktywnym) zdarzeniu - nie sciagamy go do nowego zlecenia."""
+        c = x["czuwa"]
+        if not c or c["inc"] == inc["id"]:
+            return False
+        inne = self.incydenty.get(c["inc"])
+        return inne is not None and inne["aktywny"]
+
     def _przydziel_wykonawce(self, inc):
         rodzaj = inc["rodzaj_akcji"]
         if rodzaj in RODZAJE_Z_GLOSNIKIEM:
@@ -1025,7 +1097,7 @@ class Symulator:
             warunek = lambda x: bool(czk_logic.wybierz_zaopatrzenie(inc["typ"], x["zapas"])) and not self._zajety_zleceniem(x)
         else:
             warunek = lambda x: not self._zajety_zleceniem(x)
-        d = self._najblizszy(inc["g_lat"], inc["g_lon"], warunek)
+        d = self._najblizszy(inc["g_lat"], inc["g_lon"], lambda x: warunek(x) and not self._czuwa_gdzie_indziej(x, inc))
         if d is None:
             if rodzaj == "zrzut" and not any(czk_logic.wybierz_zaopatrzenie(inc["typ"], x["zapas"]) for x in self.drony.values() if x["zywy"]):
                 inc["rodzaj_akcji"] = "obserwacja"  # zaden dron nie ma juz potrzebnych srodkow
@@ -1090,6 +1162,13 @@ class Symulator:
                 d["faza"] = "prowadzi"
             return
         cel = (inc["schron"]["lat"], inc["schron"]["lon"])
+        trasa = inc["schron"].get("trasa")
+        if trasa and d["plan_cel"] != cel:
+            # prowadzenie ulicami: dron leci nad trasa po drogach; przejmujac grupe w polowie drogi (np. po
+            # zmianie drona) zaczyna od punktu trasy najblizszego swojej pozycji, a nie od poczatku
+            poz = (d["lat"], d["lon"])
+            start = min(range(len(trasa)), key=lambda i: _km(poz, trasa[i]))
+            d["plan"], d["plan_cel"] = [tuple(p) for p in trasa[start:]], cel
         dotarl = self._lec(d, cel, krok=KROK_PROWADZENIA_KM)
         wstecz = math.radians(d["kurs"] + 180)
         inc["g_lat"] = d["lat"] + 0.03 * math.cos(wstecz) / KM_NA_STOPIEN_LAT
@@ -1282,12 +1361,18 @@ class Symulator:
         for i in self.incydenty.values():
             if not (i["aktywny"] and i["rodzaj_akcji"] == "prowadzenie" and i["akcja"] in ("przydzielona", "w_toku") and i["schron"]):
                 continue
+            # pozostala czesc trasy po drogach (od drona prowadzacego), a przed wyruszeniem - cala trasa
+            d = self.drony.get(i["wykonawca"] or "")
+            if d and d["faza"] == "prowadzi" and d["plan"]:
+                trasa = [[round(d["lat"], 5), round(d["lon"], 5)]] + [[round(a, 5), round(b, 5)] for a, b in d["plan"]]
+            else:
+                trasa = i["schron"].get("trasa") or [[i["schron"]["lat"], i["schron"]["lon"]]]
             wynik.append({"inc_id": i["id"], "lat": round(i["g_lat"], 5), "lon": round(i["g_lon"], 5),
                           "n": i["podazyli"] if i["podazyli"] is not None else i["osoby"],
                           "prowadzona": i["akcja"] == "w_toku",
                           "pozostali": (i["osoby"] - i["podazyli"]) if i["podazyli"] is not None else 0,
                           "start": [round(i["lat"], 5), round(i["lon"], 5)],
-                          "schron": [i["schron"]["lat"], i["schron"]["lon"]]})
+                          "schron": [i["schron"]["lat"], i["schron"]["lon"]], "trasa": trasa})
         return wynik
 
     def _opis_czuwania(self, d):
